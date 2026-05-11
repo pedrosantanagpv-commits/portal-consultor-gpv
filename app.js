@@ -2,7 +2,7 @@
    CONFIGURAÇÃO
 ========================= */
 
-const API = "https://script.google.com/macros/s/AKfycbyjuhqEeG-PAji5QDZhCTZHI8tLAIxRk1WMqKVeLne73ZPKFxCTkMJcXaDDDI9OmZqc/exec";
+const API = "const API = "/api/proxy";";
 
 /* =========================
    LOGIN / SESSÃO
