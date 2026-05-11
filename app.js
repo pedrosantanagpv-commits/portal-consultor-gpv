@@ -2,7 +2,7 @@
    CONFIGURAÇÃO
 ========================= */
 
-const API = "const API = "/api/proxy";";
+const API = "/api/proxy";
 
 /* =========================
    LOGIN / SESSÃO
