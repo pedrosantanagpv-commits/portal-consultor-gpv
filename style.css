@@ -1,0 +1,192 @@
+
+/* =========================
+   RESET / BASE
+========================= */
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:Arial, sans-serif;
+}
+
+body{
+  background:#101010;
+  color:white;
+}
+
+h1{
+  margin-bottom:20px;
+}
+
+h2{
+  margin-bottom:20px;
+}
+
+input,
+select{
+  width:100%;
+  padding:12px;
+  margin-bottom:10px;
+  border:none;
+  border-radius:8px;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  background:#ffd000;
+  border:none;
+  border-radius:8px;
+  font-weight:bold;
+  cursor:pointer;
+  margin-top:6px;
+}
+
+button:hover{
+  opacity:0.9;
+}
+
+.btn-secundario{
+  background:#333;
+  color:white;
+}
+
+/* =========================
+   LOGIN
+========================= */
+
+.login{
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.box{
+  width:320px;
+  background:#1b1b1b;
+  padding:30px;
+  border-radius:12px;
+}
+
+#resultado,
+#retornoCadastro,
+#retornoCooperativa{
+  margin-top:15px;
+  color:#ff7070;
+}
+
+/* =========================
+   LAYOUT DO PAINEL
+========================= */
+
+.painel{
+  display:none;
+}
+
+.topo{
+  height:70px;
+  background:#1b1b1b;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:0 30px;
+}
+
+.menu{
+  width:240px;
+  height:calc(100vh - 70px);
+  background:#181818;
+  position:fixed;
+  left:0;
+  top:70px;
+  padding:20px;
+}
+
+.menu button{
+  margin-bottom:10px;
+}
+
+.conteudo{
+  margin-left:240px;
+  padding:30px;
+}
+
+.card{
+  background:#1b1b1b;
+  padding:20px;
+  border-radius:12px;
+  margin-top:20px;
+}
+
+.submenu{
+  display:flex;
+  gap:10px;
+}
+
+.submenu button{
+  flex:1;
+}
+
+.area-interna{
+  margin-top:20px;
+}
+/* =========================
+   DASHBOARD
+========================= */
+
+.grid-dashboard{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:20px;
+}
+
+.card-dashboard{
+  background:#1a1a1a;
+  padding:30px;
+  border-radius:14px;
+  text-align:center;
+  border:1px solid #2a2a2a;
+}
+
+.card-dashboard h2{
+  font-size:42px;
+  color:#ffd000;
+  margin-bottom:10px;
+}
+
+.card-dashboard p{
+  font-size:16px;
+  color:#ccc;
+}
+/* =========================
+   MODAL EDITAR
+========================= */
+
+#modalEditar{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.75);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
+}
+
+.modal-box{
+  width:420px;
+  background:#1b1b1b;
+  padding:30px;
+  border-radius:16px;
+  border:1px solid #2a2a2a;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+}
+
+.modal-box h2{
+  margin-bottom:20px;
+}
+
+.modal-box button{
+  margin-top:10px;
+}
