@@ -21,14 +21,14 @@ export default async function handler(req, res) {
     const texto = await resposta.text();
 
     if (texto.trim().startsWith("<")) {
-  return res.status(500).json({
-    status: "error",
-    message: "Apps Script retornou HTML.",
-    httpStatus: resposta.status,
-    finalUrl: resposta.url,
-    preview: texto.substring(0, 500)
-  });
-}
+      return res.status(500).json({
+        status: "error",
+        message: "Apps Script retornou HTML.",
+        httpStatus: resposta.status,
+        finalUrl: resposta.url,
+        preview: texto.substring(0, 800)
+      });
+    }
 
     return res.status(200).send(texto);
 
