@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   try {
 
-    const resposta = await fetch(SCRIPT_URL, {
+    const resposta = await fetch(APPS_SCRIPT_URL,{
       method: "POST",
       headers: {
         "Content-Type": "text/plain;charset=utf-8"
