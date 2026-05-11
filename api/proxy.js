@@ -14,13 +14,13 @@ export default async function handler(req, res) {
     const resposta = await fetch(APPS_SCRIPT_URL,{
       method: "POST",
       headers: {
-        "Content-Type": "text/plain;charset=utf-8"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(req.body)
     });
 
     const texto = await resposta.text();
-
+    res.status(200).send(texto);
     res.setHeader("Access-Control-Allow-Origin", "*");
 
     return res.status(200).send(texto);
