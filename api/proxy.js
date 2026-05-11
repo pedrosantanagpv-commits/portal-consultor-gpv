@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
 
-  const SCRIPT_URL = "const API = "/api/proxy";
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyjuhqEeG-PAji5QDZhCTZHI8tLAIxRk1WMqKVeLne73ZPKFxCTkMJcXaDDDI9OmZqc/exec"
 
   if (req.method !== "POST") {
     return res.status(405).json({
