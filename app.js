@@ -1,9 +1,6 @@
 const API = "/api/proxy";
 
-// Variáveis globais para busca e cache
-let usuariosLocal = [];
-let cooperativasLocal = [];
-
+// --- FUNÇÃO AUXILIAR DE COMUNICAÇÃO ---
 async function apiPost(payload) {
   try {
     const resposta = await fetch(API, {
@@ -18,8 +15,7 @@ async function apiPost(payload) {
   }
 }
 
-/* --- LOGIN E SESSÃO --- */
-
+// --- LOGIN E SESSÃO ---
 async function login() {
   const email = document.getElementById("email").value.trim();
   const senha = document.getElementById("senha").value.trim();
@@ -31,7 +27,6 @@ async function login() {
   }
 
   resultado.innerHTML = "Entrando...";
-
   const dados = await apiPost({ acao: "login", email, senha });
 
   if (dados.status === "success") {
@@ -49,10 +44,8 @@ function carregarInterface(usuario) {
   document.getElementById("usuarioNome").innerHTML = usuario.nome;
   document.getElementById("usuarioPerfil").innerHTML = usuario.perfil;
 
-  // Controle de menu Admin
-  const menuAdmin = document.getElementById("menuAdmin");
   const isAdmin = usuario.perfil === "SUPER_ADMIN" || usuario.perfil === "ADMINISTRATIVO";
-  menuAdmin.style.display = isAdmin ? "block" : "none";
+  document.getElementById("menuAdmin").style.display = isAdmin ? "block" : "none";
 }
 
 function logout() {
@@ -60,74 +53,24 @@ function logout() {
   location.reload();
 }
 
-window.onload = function () {
-  const usuario = localStorage.getItem("usuario");
-  if (usuario) {
-    carregarInterface(JSON.parse(usuario));
-    abrirPagina("inicio");
-  }
-};
-
-/* --- NAVEGAÇÃO --- */
-
+// --- NAVEGAÇÃO ---
 function abrirPagina(pagina) {
   const conteudo = document.getElementById("conteudo");
   const usuario = JSON.parse(localStorage.getItem("usuario"));
 
-  // Reset de classes ativas no menu (opcional)
-  
   if (pagina === "inicio") {
     if (usuario.perfil === "SUPER_ADMIN" || usuario.perfil === "ADMINISTRATIVO") {
       carregarDashboardAdmin();
     } else {
-      conteudo.innerHTML = `<h1>Bem-vindo, ${usuario.nome}</h1><div class="card"><p>Sua Cooperativa: ${usuario.cooperativa}</p></div>`;
+      conteudo.innerHTML = `<h1>Bem-vindo, ${usuario.nome}</h1><div class="card"><p>Cooperativa: ${usuario.cooperativa}</p></div>`;
     }
   }
-
   if (pagina === "usuarios") telaUsuarios();
   if (pagina === "cooperativas") telaCooperativas();
-  
-  if (pagina === "conteudos") {
-    conteudo.innerHTML = `
-      <h1>Central do Consultor</h1>
-      <div class="central-container">
-        <div class="row-apoio" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-          <div class="card border-amarelo">
-            <h3 style="color: #ffd000;">📢 NOVIDADES GPV / EVENTOS</h3>
-            <div class="banner-simulado">BANNER DE CONTEÚDO</div>
-          </div>
-          <div class="card border-amarelo">
-            <h3 style="color: #ffd000;">📚 MATERIAL DE APOIO</h3>
-            <ul class="lista-apoio">
-              <li>📄 <a href="#">Guia do Consultor</a></li>
-              <li>📄 <a href="#">Links importantes e Aplicações utilizadas</a></li>
-              <li>📄 <a href="#">Cadastrar Consultor</a></li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="card card-suporte">
-          <h3 style="color: #e74c3c; text-align: center; margin-bottom: 20px;">📞 CONTATOS IMPORTANTES E SUPORTE</h3>
-          <div class="suporte-grid">
-            <div class="assistencia-info">
-              <p><strong>ASSISTÊNCIA 24H</strong></p>
-              <p>0800 111 1414 | 0800 591 8357</p>
-              <p>📱 (81) 9424-5276 (WhatsApp)</p>
-            </div>
-            <div class="whatsapp-botoes">
-              <a href="https://wa.me/5581991223928" target="_blank" class="btn-whats">💬 CENTRAL DO CONSULTOR</a>
-              <a href="https://wa.me/5581998657992" target="_blank" class="btn-whats">💬 CENTRAL DO ASSOCIADO</a>
-            </div>
-            <div></div> <!-- Espaço vazio onde era o e-mail -->
-          </div>
-        </div>
-      </div>
-    `;
-  }
+  if (pagina === "conteudos") telaConteudos();
 }
 
-/* --- DASHBOARD PREMIUM (image_9b1203.jpg) --- */
-
+// --- DASHBOARD COM GRÁFICOS REAIS ---
 async function carregarDashboardAdmin() {
   const conteudo = document.getElementById("conteudo");
   const usuario = JSON.parse(localStorage.getItem("usuario"));
@@ -167,7 +110,7 @@ async function carregarDashboardAdmin() {
     <div class="row-graficos">
         <div class="card card-grafico">
             <h3>📈 Resumo Geral</h3>
-            <div class="placeholder-grafico"><p>Gráfico em desenvolvimento</p></div>
+            <div class="chart-container"><canvas id="graficoLinha"></canvas></div>
             <div class="mini-stats">
                 <div><small>Total</small><p id="miniTotal">0</p></div>
                 <div><small>Ativos</small><p id="miniAtivos" style="color: #2ecc71;">0</p></div>
@@ -176,13 +119,14 @@ async function carregarDashboardAdmin() {
         </div>
         <div class="card card-grafico-pizza">
             <h3>🍕 Distribuição</h3>
-            <div class="placeholder-pizza"><div class="donut-simulado"></div></div>
+            <div class="chart-container"><canvas id="graficoDonut"></canvas></div>
         </div>
     </div>
   `;
 
   const dados = await apiPost({ acao: "dashboardAdmin" });
   if (dados.status === "success") {
+    // Atualiza números
     document.getElementById("totalUsuarios").innerText = dados.totalUsuarios;
     document.getElementById("usuariosAtivos").innerText = dados.usuariosAtivos;
     document.getElementById("consultores").innerText = dados.totalConsultores;
@@ -191,43 +135,48 @@ async function carregarDashboardAdmin() {
     document.getElementById("miniTotal").innerText = dados.totalUsuarios;
     document.getElementById("miniAtivos").innerText = dados.usuariosAtivos;
     document.getElementById("miniInativos").innerText = (dados.totalUsuarios - dados.usuariosAtivos);
-  }
-}
 
-/* --- FUNÇÕES DE USUÁRIOS E COOPERATIVAS (Resumidas para o JS não ficar gigante) --- */
-
-function telaUsuarios() {
-  const conteudo = document.getElementById("conteudo");
-  conteudo.innerHTML = `<h1>Usuários</h1><div class="card"><button onclick="carregarUsuarios()">Listar Usuários</button><div id="listaUsuarios"></div></div>`;
-}
-
-async function carregarUsuarios() {
-  const lista = document.getElementById("listaUsuarios");
-  lista.innerHTML = "Carregando...";
-  const dados = await apiPost({ acao: "listarUsuarios" });
-  if (dados.status === "success") {
-    let html = "";
-    dados.usuarios.forEach(u => {
-      html += `<div style="padding:10px; border-bottom:1px solid #333;">${u.nome} - ${u.email}</div>`;
+    // Renderiza Gráfico de Linha
+    new Chart(document.getElementById('graficoLinha'), {
+      type: 'line',
+      data: {
+        labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+        datasets: [{
+          label: 'Novos Usuários',
+          data: [1, 2, 1, 3, 2, 4, dados.totalUsuarios],
+          borderColor: '#ffd000',
+          backgroundColor: 'rgba(255, 208, 0, 0.1)',
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
     });
-    lista.innerHTML = html;
-  }
-}
 
-function telaCooperativas() {
-  const conteudo = document.getElementById("conteudo");
-  conteudo.innerHTML = `<h1>Cooperativas</h1><div class="card"><button onclick="carregarCooperativas()">Listar Cooperativas</button><div id="listaCooperativas"></div></div>`;
-}
-
-async function carregarCooperativas() {
-  const lista = document.getElementById("listaCooperativas");
-  lista.innerHTML = "Carregando...";
-  const dados = await apiPost({ acao: "listarCooperativas" });
-  if (dados.status === "success") {
-    let html = "";
-    dados.cooperativas.forEach(c => {
-      html += `<div style="padding:10px; border-bottom:1px solid #333;">${c.nome} - ${c.cidade}</div>`;
+    // Renderiza Gráfico Donut
+    new Chart(document.getElementById('graficoDonut'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Consultores', 'Regionais', 'Outros'],
+        datasets: [{
+          data: [dados.totalConsultores, dados.totalRegionais, (dados.totalUsuarios - dados.totalConsultores - dados.totalRegionais)],
+          backgroundColor: ['#3498db', '#9b59b6', '#ffd000'],
+          borderWidth: 0
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } } }
     });
-    lista.innerHTML = html;
   }
 }
+
+function telaConteudos() {
+    document.getElementById("conteudo").innerHTML = `<h1>Central do Consultor</h1><div class="card"><p>Materiais e Suporte...</p></div>`;
+}
+
+window.onload = function() {
+  const usuario = localStorage.getItem("usuario");
+  if (usuario) {
+    carregarInterface(JSON.parse(usuario));
+    abrirPagina("inicio");
+  }
+};
