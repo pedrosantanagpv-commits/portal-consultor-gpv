@@ -66,7 +66,7 @@ function aplicarPermissoesVisuais() {
       if (perfil === 'REGIONAL') {
         btnCadastroConsultor.innerText = 'Solicitar Cadastro de Consultor';
       } else {
-        btnCadastroConsultor.innerText = 'Cadastrar Consultor';
+        btnCadastroConsultor.innerText = 'Enviar Solicitação';
       }
     }
   }
