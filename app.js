@@ -1,6 +1,6 @@
 const API = "/api/proxy";
 
-// Variáveis globais para busca instantânea sem novas chamadas de API
+// Variáveis globais para busca instantânea
 let usuariosLocal = [];
 let cooperativasLocal = [];
 
@@ -13,7 +13,7 @@ async function apiPost(payload) {
   return await resposta.json();
 }
 
-/* LOGIN */
+/* LOGIN E SESSÃO */
 
 async function login() {
   const email = document.getElementById("email").value.trim();
@@ -75,7 +75,7 @@ function usuarioAdmin() {
   return usuario && (usuario.perfil === "SUPER_ADMIN" || usuario.perfil === "ADMINISTRATIVO");
 }
 
-/* ROTAS */
+/* ROTAS E NAVEGAÇÃO */
 
 function abrirPagina(pagina) {
   const conteudo = document.getElementById("conteudo");
@@ -87,13 +87,11 @@ function abrirPagina(pagina) {
         <h1>Painel do Consultor</h1>
         <div class="card"><h3>Minha Cooperativa</h3><p>${usuario.cooperativa}</p></div>
         <div class="card"><h3>Comunicados</h3><p>Nenhum comunicado disponível.</p></div>
-        <div class="card"><h3>Conteúdos Recentes</h3><p>Nenhum conteúdo disponível.</p></div>
       `;
     } else if (usuario.perfil === "REGIONAL") {
       conteudo.innerHTML = `
         <h1>Painel Regional</h1>
         <div class="card"><h3>Cooperativa</h3><p>${usuario.cooperativa}</p></div>
-        <div class="card"><h3>Consultores</h3><p>Em breve...</p></div>
         <div class="card"><h3>Comunicados</h3><p>Nenhum comunicado disponível.</p></div>
       `;
     } else {
@@ -117,12 +115,65 @@ function abrirPagina(pagina) {
     telaCooperativas();
   }
 
+  // IMPLEMENTAÇÃO BASEADA NA IMAGEM "Idéias de acréscimo ao projeto..png"
   if (pagina === "conteudos") {
-    conteudo.innerHTML = `<h1>Conteúdos</h1><div class="card">Área de conteúdos e procedimentos.</div>`;
+    conteudo.innerHTML = `
+      <h1>Central do Consultor</h1>
+      
+      <div class="central-container">
+        <!-- Linha Superior: Banner e Apoio -->
+        <div class="central-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+          
+          <div class="card" style="min-height: 250px; border: 2px solid #f1c40f;">
+            <h3 style="color: #f1c40f;">📢 NOVIDADES GPV / EVENTOS</h3>
+            <div style="background: #222; height: 150px; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 1px dashed #444; margin-top: 15px;">
+              <p style="text-align: center; color: #888;">BANNER DE CONTEÚDO<br><small>(Atualizado constantemente)</small></p>
+            </div>
+          </div>
+
+          <div class="card" style="min-height: 250px; border: 2px solid #f1c40f;">
+            <h3 style="color: #f1c40f;">📚 MATERIAL DE APOIO AO CONSULTOR</h3>
+            <div style="margin-top: 15px;">
+              <p style="font-size: 0.9rem; margin-bottom: 10px;">Orientações de procedimentos realizados constantemente:</p>
+              <ul style="list-style: none; padding: 0;">
+                <li style="padding: 8px 0; border-bottom: 1px solid #333;">📄 <a href="#" style="color: #fff; text-decoration: none;">Manual de Procedimento X</a></li>
+                <li style="padding: 8px 0; border-bottom: 1px solid #333;">📄 <a href="#" style="color: #fff; text-decoration: none;">Guia de Orientação Y</a></li>
+                <li style="padding: 8px 0;">📄 <a href="#" style="color: #fff; text-decoration: none;">Checklist de Atendimento</a></li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Linha Inferior: Contatos -->
+        <div class="card" style="border: 2px solid #e74c3c;">
+          <h3 style="color: #e74c3c; text-align: center; margin-bottom: 20px;">📞 CONTATOS IMPORTANTES E SUPORTE</h3>
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-around; align-items: center; gap: 20px;">
+            <div style="text-align: center;">
+              <p><strong>NÚMEROS PRINCIPAIS</strong></p>
+              <p>0800 000 0000 (Sede)</p>
+              <p>(81) 3333-3333 (Plantão)</p>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="https://wa.me/5581999999999" target="_blank" 
+                 style="background: #25d366; color: white; padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: bold; display: inline-block;">
+                 💬 WHATSAPP SUPORTE
+              </a>
+            </div>
+
+            <div style="text-align: center;">
+              <p><strong>E-MAIL OFICIAL</strong></p>
+              <p>suporte@gpv.com.br</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
   }
 }
 
-/* DASHBOARD PRINCIPAL */
+/* DASHBOARD ADMIN */
 
 async function carregarDashboardAdmin() {
   const conteudo = document.getElementById("conteudo");
@@ -284,7 +335,7 @@ function renderizarListaCooperativas(lista) {
         <p><strong>Status:</strong> ${coop.status || "ATIVO"}</p>
         <p style="color: #3498db;"><strong>👥 Usuários:</strong> ${coop.totalUsuarios || 0}</p>
         <div style="display:flex; gap:5px; margin-top:10px;">
-          <button class="btn-secundario" onclick="alert('Funcionalidade de edição em breve')">Editar</button>
+          <button class="btn-secundario" onclick="alert('Edição em breve')">Editar</button>
         </div>
       </div>`;
   });
@@ -307,7 +358,7 @@ function atualizarMiniDashCoop(lista) {
   document.getElementById("dashTotalAtivosCoop").innerText = totalUsers;
 }
 
-/* FUNÇÕES DE APOIO (CRIAÇÃO, EDIÇÃO E EXCLUSÃO) */
+/* APOIO E MODAIS */
 
 async function mostrarCriarUsuario() {
   const area = document.getElementById("usuariosConteudo");
@@ -331,22 +382,6 @@ async function mostrarCriarUsuario() {
   carregarSelectCooperativas();
 }
 
-async function criarUsuario() {
-  const nome = document.getElementById("novoNome").value.trim();
-  const email = document.getElementById("novoEmail").value.trim();
-  const senha = document.getElementById("novaSenha").value.trim();
-  const perfil = document.getElementById("novoPerfil").value;
-  const cooperativa = document.getElementById("novaCooperativa").value;
-  const retorno = document.getElementById("retornoCadastro");
-
-  if (!nome || !email || !senha || !perfil || !cooperativa) { retorno.innerHTML = "Preencha tudo."; return; }
-  try {
-    const dados = await apiPost({ acao: "criarUsuario", nome, email, senha, perfil, cooperativa });
-    if (dados.status === "success") { alert("Criado!"); carregarUsuarios(); telaUsuarios(); }
-    else { retorno.innerHTML = dados.message; }
-  } catch (erro) { console.log(erro); }
-}
-
 async function carregarSelectCooperativas() {
   const select = document.getElementById("novaCooperativa");
   try {
@@ -355,6 +390,21 @@ async function carregarSelectCooperativas() {
     dados.cooperativas.forEach(coop => { options += `<option value="${coop.nome}">${coop.nome}</option>`; });
     select.innerHTML = options;
   } catch (erro) { console.log(erro); }
+}
+
+async function criarUsuario() {
+  const payload = {
+    acao: "criarUsuario",
+    nome: document.getElementById("novoNome").value.trim(),
+    email: document.getElementById("novoEmail").value.trim(),
+    senha: document.getElementById("novaSenha").value.trim(),
+    perfil: document.getElementById("novoPerfil").value,
+    cooperativa: document.getElementById("novaCooperativa").value
+  };
+  try {
+    const d = await apiPost(payload);
+    if (d.status === "success") { alert("Criado!"); carregarUsuarios(); telaUsuarios(); }
+  } catch (e) { console.log(e); }
 }
 
 function mostrarCriarCooperativa() {
@@ -369,16 +419,16 @@ function mostrarCriarCooperativa() {
 }
 
 async function criarCooperativa() {
-  const nome = document.getElementById("coopNome").value.trim();
-  const regional = document.getElementById("coopRegional").value.trim();
-  const cidade = document.getElementById("coopCidade").value.trim();
-  const retorno = document.getElementById("retornoCooperativa");
-  if (!nome || !regional || !cidade) { retorno.innerHTML = "Preencha tudo."; return; }
+  const payload = {
+    acao: "criarCooperativa",
+    nome: document.getElementById("coopNome").value.trim(),
+    regional: document.getElementById("coopRegional").value.trim(),
+    cidade: document.getElementById("coopCidade").value.trim()
+  };
   try {
-    const dados = await apiPost({ acao: "criarCooperativa", nome, regional, cidade });
-    if (dados.status === "success") { alert("Criada!"); carregarCooperativas(); telaCooperativas(); }
-    else { retorno.innerHTML = dados.message; }
-  } catch (erro) { console.log(erro); }
+    const d = await apiPost(payload);
+    if (d.status === "success") { alert("Criada!"); carregarCooperativas(); telaCooperativas(); }
+  } catch (e) { console.log(e); }
 }
 
 async function alterarStatus(id, status) {
@@ -397,8 +447,6 @@ async function confirmarExclusao(id, nome) {
     } catch (e) { console.log(e); }
   }
 }
-
-/* MODAL EDITAR */
 
 function abrirModalEditar(nome, email, perfil, cooperativa, status) {
   fecharModalEditar();
@@ -439,7 +487,7 @@ async function salvarEdicaoUsuario() {
   };
   try {
     const d = await apiPost(payload);
-    if (d.status === "success") { alert("Sucesso!"); fecharModalEditar(); carregarUsuarios(); carregarDashboardAdmin(); }
+    if (d.status === "success") { alert("Sucesso!"); fecharModalEditar(); carregarUsuarios(); }
   } catch (e) { console.log(e); }
 }
 
