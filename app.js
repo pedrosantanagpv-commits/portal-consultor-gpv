@@ -131,7 +131,7 @@ function abrirPagina(pagina) {
           </div>
 
           <div class="card" style="min-height: 250px; border: 2px solid #f1c40f;">
-            <h3 style="color: #f1c40f;">📚 MATERIAL DE APOIO AO CONSULTOR</h3>
+            <h3 style="color: #f1c40f;">📚 MATERIAL DE APOIO AO CONSULTOR E REGIONAL </h3>
             <div style="margin-top: 15px;">
               <p style="font-size: 0.9rem; margin-bottom: 10px;">Orientações de procedimentos:</p>
               <ul style="list-style: none; padding: 0;">
