@@ -43,6 +43,8 @@ async function apiPost(payload) {
   return await resposta.json();
 }
 
+/* LOGIN */
+
 async function fazerLogin(event) {
   event.preventDefault();
 
@@ -82,6 +84,8 @@ function sair() {
   mostrarLogin();
 }
 
+/* NAVEGAÇÃO */
+
 function mostrarAba(aba) {
   document.querySelectorAll('.section').forEach(secao => {
     secao.style.display = 'none';
@@ -98,9 +102,14 @@ function mostrarAba(aba) {
   if (menu) menu.classList.add('active');
 
   if (aba === 'inicio') carregarDashboard();
-  if (aba === 'usuarios') carregarUsuarios();
+  if (aba === 'usuarios') {
+    carregarUsuarios();
+    carregarCooperativas();
+  }
   if (aba === 'cooperativas') carregarCooperativas();
 }
+
+/* DASHBOARD */
 
 async function carregarDashboard() {
   try {
@@ -115,16 +124,18 @@ async function carregarDashboard() {
 
     const dados = resultado.dashboard;
 
-    document.getElementById('dashUsuarios').innerText = dados.totalUsuarios || 0;
-    document.getElementById('dashAtivos').innerText = dados.usuariosAtivos || 0;
-    document.getElementById('dashConsultores').innerText = dados.consultores || 0;
-    document.getElementById('dashRegionais').innerText = dados.regionais || 0;
-    document.getElementById('dashCooperativas').innerText = dados.cooperativas || 0;
+    setTexto('dashUsuarios', dados.totalUsuarios || 0);
+    setTexto('dashAtivos', dados.usuariosAtivos || 0);
+    setTexto('dashConsultores', dados.consultores || 0);
+    setTexto('dashRegionais', dados.regionais || 0);
+    setTexto('dashCooperativas', dados.cooperativas || 0);
 
   } catch (erro) {
     console.error('Erro dashboard:', erro);
   }
 }
+
+/* USUÁRIOS */
 
 async function carregarUsuarios() {
   try {
@@ -138,6 +149,7 @@ async function carregarUsuarios() {
     }
 
     usuariosCache = resultado.usuarios || [];
+
     renderizarUsuarios(usuariosCache);
     atualizarMiniDashboardUsuarios(usuariosCache);
 
@@ -165,9 +177,12 @@ function renderizarUsuarios(lista) {
   lista.forEach(usuario => {
     const tr = document.createElement('tr');
 
-    const statusClass = String(usuario.status).toUpperCase() === 'ATIVO'
+    const statusTexto = String(usuario.status || '').toUpperCase();
+    const statusClass = statusTexto === 'ATIVO'
       ? 'status ativo'
       : 'status inativo';
+
+    const cooperativaTexto = obterNomeCooperativa(usuario.cooperativa_id);
 
     tr.innerHTML = `
       <td>
@@ -176,14 +191,16 @@ function renderizarUsuarios(lista) {
       </td>
       <td>${usuario.email || '-'}</td>
       <td><span class="tag">${usuario.perfil || '-'}</span></td>
-      <td>${usuario.cooperativa || '-'}</td>
+      <td>${cooperativaTexto || '-'}</td>
       <td><span class="${statusClass}">${usuario.status || '-'}</span></td>
       <td class="acoes">
         <button onclick="abrirModalEditarUsuario('${usuario.id}')">Editar</button>
         <button onclick="alterarStatusUsuario('${usuario.id}')">
-          ${String(usuario.status).toUpperCase() === 'ATIVO' ? 'Inativar' : 'Ativar'}
+          ${statusTexto === 'ATIVO' ? 'Inativar' : 'Ativar'}
         </button>
-        <button class="danger" onclick="confirmarExclusaoUsuario('${usuario.id}', '${usuario.nome}')">Excluir</button>
+        <button class="danger" onclick="confirmarExclusaoUsuario('${usuario.id}', '${usuario.nome || ''}')">
+          Excluir
+        </button>
       </td>
     `;
 
@@ -193,11 +210,27 @@ function renderizarUsuarios(lista) {
 
 function atualizarMiniDashboardUsuarios(lista) {
   const total = lista.length;
-  const ativos = lista.filter(u => String(u.status).toUpperCase() === 'ATIVO').length;
-  const inativos = lista.filter(u => String(u.status).toUpperCase() === 'INATIVO').length;
-  const admins = lista.filter(u => ['SUPER_ADMIN', 'ADMINISTRATIVO'].includes(String(u.perfil).toUpperCase())).length;
-  const regionais = lista.filter(u => String(u.perfil).toUpperCase() === 'REGIONAL').length;
-  const consultores = lista.filter(u => String(u.perfil).toUpperCase() === 'CONSULTOR').length;
+
+  const ativos = lista.filter(u =>
+    String(u.status || '').toUpperCase() === 'ATIVO'
+  ).length;
+
+  const inativos = lista.filter(u =>
+    String(u.status || '').toUpperCase() === 'INATIVO'
+  ).length;
+
+  const admins = lista.filter(u => {
+    const perfil = String(u.perfil || '').toUpperCase();
+    return perfil === 'SUPER_ADMIN' || perfil === 'ADMINISTRATIVO';
+  }).length;
+
+  const regionais = lista.filter(u =>
+    String(u.perfil || '').toUpperCase() === 'REGIONAL'
+  ).length;
+
+  const consultores = lista.filter(u =>
+    String(u.perfil || '').toUpperCase() === 'CONSULTOR'
+  ).length;
 
   setTexto('miniTotalUsuarios', total);
   setTexto('miniUsuariosAtivos', ativos);
@@ -205,11 +238,6 @@ function atualizarMiniDashboardUsuarios(lista) {
   setTexto('miniAdmins', admins);
   setTexto('miniRegionais', regionais);
   setTexto('miniConsultores', consultores);
-}
-
-function setTexto(id, valor) {
-  const el = document.getElementById(id);
-  if (el) el.innerText = valor;
 }
 
 function filtrarUsuarios() {
@@ -220,36 +248,48 @@ function filtrarUsuarios() {
   let lista = [...usuariosCache];
 
   if (busca) {
-    lista = lista.filter(usuario =>
-      String(usuario.nome || '').toLowerCase().includes(busca) ||
-      String(usuario.email || '').toLowerCase().includes(busca) ||
-      String(usuario.cooperativa || '').toLowerCase().includes(busca)
-    );
+    lista = lista.filter(usuario => {
+      const nome = String(usuario.nome || '').toLowerCase();
+      const email = String(usuario.email || '').toLowerCase();
+      const coopId = String(usuario.cooperativa_id || '').toLowerCase();
+      const coopNome = String(obterNomeCooperativa(usuario.cooperativa_id) || '').toLowerCase();
+
+      return (
+        nome.includes(busca) ||
+        email.includes(busca) ||
+        coopId.includes(busca) ||
+        coopNome.includes(busca)
+      );
+    });
   }
 
   if (filtroStatus) {
     lista = lista.filter(usuario =>
-      String(usuario.status).toUpperCase() === filtroStatus
+      String(usuario.status || '').toUpperCase() === filtroStatus
     );
   }
 
   if (filtroPerfil) {
     lista = lista.filter(usuario =>
-      String(usuario.perfil).toUpperCase() === filtroPerfil
+      String(usuario.perfil || '').toUpperCase() === filtroPerfil
     );
   }
 
   renderizarUsuarios(lista);
 }
 
+/* MODAL USUÁRIO */
+
 function abrirModalNovoUsuario() {
   document.getElementById('modalUsuarioTitulo').innerText = 'Novo Usuário';
+
   document.getElementById('usuarioId').value = '';
   document.getElementById('usuarioNome').value = '';
   document.getElementById('usuarioEmail').value = '';
   document.getElementById('usuarioSenha').value = '';
   document.getElementById('usuarioPerfil').value = 'CONSULTOR';
   document.getElementById('usuarioCooperativa').value = '';
+  document.getElementById('usuarioPermissoes').value = '';
   document.getElementById('usuarioStatus').value = 'ATIVO';
 
   preencherSelectCooperativas();
@@ -265,22 +305,24 @@ function abrirModalEditarUsuario(id) {
   }
 
   document.getElementById('modalUsuarioTitulo').innerText = 'Editar Usuário';
+
   document.getElementById('usuarioId').value = usuario.id || '';
   document.getElementById('usuarioNome').value = usuario.nome || '';
   document.getElementById('usuarioEmail').value = usuario.email || '';
   document.getElementById('usuarioSenha').value = '';
   document.getElementById('usuarioPerfil').value = usuario.perfil || 'CONSULTOR';
-  document.getElementById('usuarioCooperativa').value = usuario.cooperativa || '';
+  document.getElementById('usuarioCooperativa').value = usuario.cooperativa_id || '';
+  document.getElementById('usuarioPermissoes').value = usuario.permissoes || '';
   document.getElementById('usuarioStatus').value = usuario.status || 'ATIVO';
 
-  preencherSelectCooperativas(usuario.cooperativa);
+  preencherSelectCooperativas(usuario.cooperativa_id);
   abrirModal('modalUsuario');
 }
 
 async function salvarUsuario(event) {
   event.preventDefault();
 
-  const id = document.getElementById('usuarioId').value;
+  const id = document.getElementById('usuarioId').value.trim();
 
   const payload = {
     action: id ? 'editarUsuario' : 'salvarUsuario',
@@ -289,7 +331,8 @@ async function salvarUsuario(event) {
     email: document.getElementById('usuarioEmail').value.trim(),
     senha: document.getElementById('usuarioSenha').value.trim(),
     perfil: document.getElementById('usuarioPerfil').value,
-    cooperativa: document.getElementById('usuarioCooperativa').value,
+    cooperativa_id: document.getElementById('usuarioCooperativa').value,
+    permissoes: document.getElementById('usuarioPermissoes').value.trim(),
     status: document.getElementById('usuarioStatus').value
   };
 
@@ -307,6 +350,7 @@ async function salvarUsuario(event) {
     }
 
     alert(resultado.message || 'Usuário salvo com sucesso.');
+
     fecharModal('modalUsuario');
     carregarUsuarios();
     carregarDashboard();
@@ -360,7 +404,8 @@ async function excluirUsuario(id) {
       return;
     }
 
-    alert('Usuário excluído com sucesso.');
+    alert(resultado.message || 'Usuário excluído com sucesso.');
+
     carregarUsuarios();
     carregarDashboard();
 
@@ -369,6 +414,8 @@ async function excluirUsuario(id) {
     alert('Erro ao excluir usuário.');
   }
 }
+
+/* COOPERATIVAS */
 
 async function carregarCooperativas() {
   try {
@@ -382,6 +429,7 @@ async function carregarCooperativas() {
     }
 
     cooperativasCache = resultado.cooperativas || [];
+
     renderizarCooperativas(cooperativasCache);
     preencherSelectCooperativas();
 
@@ -399,7 +447,7 @@ function renderizarCooperativas(lista) {
   if (!lista.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="4" class="empty-table">Nenhuma cooperativa encontrada.</td>
+        <td colspan="5" class="empty-table">Nenhuma cooperativa encontrada.</td>
       </tr>
     `;
     return;
@@ -408,13 +456,19 @@ function renderizarCooperativas(lista) {
   lista.forEach(coop => {
     const tr = document.createElement('tr');
 
-    const statusClass = String(coop.status).toUpperCase() === 'ATIVO'
+    const statusTexto = String(coop.status || '').toUpperCase();
+
+    const statusClass = statusTexto === 'ATIVA' || statusTexto === 'ATIVO'
       ? 'status ativo'
       : 'status inativo';
 
     tr.innerHTML = `
-      <td>${coop.nome || '-'}</td>
-      <td>${coop.codigo || '-'}</td>
+      <td>
+        <strong>${coop.nome_cooperativa || coop.nome || '-'}</strong>
+        <small>${coop.id || ''}</small>
+      </td>
+      <td>${coop.regional_responsavel || '-'}</td>
+      <td>${coop.cidade || '-'}</td>
       <td><span class="${statusClass}">${coop.status || '-'}</span></td>
       <td class="acoes">
         <button disabled>Editar</button>
@@ -425,29 +479,11 @@ function renderizarCooperativas(lista) {
   });
 }
 
-function preencherSelectCooperativas(valorSelecionado = '') {
-  const select = document.getElementById('usuarioCooperativa');
-  if (!select) return;
-
-  select.innerHTML = '<option value="">Selecione uma cooperativa</option>';
-
-  cooperativasCache.forEach(coop => {
-    const option = document.createElement('option');
-    option.value = coop.nome;
-    option.textContent = coop.nome;
-
-    if (coop.nome === valorSelecionado) {
-      option.selected = true;
-    }
-
-    select.appendChild(option);
-  });
-}
-
 function abrirModalNovaCooperativa() {
   document.getElementById('coopNome').value = '';
-  document.getElementById('coopCodigo').value = '';
-  document.getElementById('coopStatus').value = 'ATIVO';
+  document.getElementById('coopRegional').value = '';
+  document.getElementById('coopCidade').value = '';
+  document.getElementById('coopStatus').value = 'ATIVA';
 
   abrirModal('modalCooperativa');
 }
@@ -457,13 +493,14 @@ async function salvarCooperativa(event) {
 
   const payload = {
     action: 'criarCooperativa',
-    nome: document.getElementById('coopNome').value.trim(),
-    codigo: document.getElementById('coopCodigo').value.trim(),
+    nome_cooperativa: document.getElementById('coopNome').value.trim(),
+    regional_responsavel: document.getElementById('coopRegional').value.trim(),
+    cidade: document.getElementById('coopCidade').value.trim(),
     status: document.getElementById('coopStatus').value
   };
 
-  if (!payload.nome || !payload.codigo) {
-    alert('Preencha nome e código da cooperativa.');
+  if (!payload.nome_cooperativa || !payload.regional_responsavel || !payload.cidade) {
+    alert('Preencha nome da cooperativa, regional responsável e cidade.');
     return;
   }
 
@@ -475,7 +512,8 @@ async function salvarCooperativa(event) {
       return;
     }
 
-    alert('Cooperativa cadastrada com sucesso.');
+    alert(resultado.message || 'Cooperativa cadastrada com sucesso.');
+
     fecharModal('modalCooperativa');
     carregarCooperativas();
     carregarDashboard();
@@ -486,6 +524,45 @@ async function salvarCooperativa(event) {
   }
 }
 
+function preencherSelectCooperativas(valorSelecionado = '') {
+  const select = document.getElementById('usuarioCooperativa');
+  if (!select) return;
+
+  select.innerHTML = '<option value="">Selecione uma cooperativa</option>';
+
+  cooperativasCache.forEach(coop => {
+    const option = document.createElement('option');
+
+    option.value = coop.id;
+    option.textContent = coop.nome_cooperativa || coop.nome || coop.id;
+
+    if (String(coop.id) === String(valorSelecionado)) {
+      option.selected = true;
+    }
+
+    select.appendChild(option);
+  });
+}
+
+function obterNomeCooperativa(cooperativaId) {
+  if (!cooperativaId) return '-';
+
+  const valor = String(cooperativaId).trim();
+
+  if (valor.toUpperCase() === 'TODAS' || valor.toLowerCase() === 'todas') {
+    return 'Todas';
+  }
+
+  const coop = cooperativasCache.find(c =>
+    String(c.id) === valor ||
+    String(c.nome_cooperativa || '').toLowerCase() === valor.toLowerCase()
+  );
+
+  return coop ? (coop.nome_cooperativa || coop.nome) : valor;
+}
+
+/* MODAIS */
+
 function abrirModal(id) {
   const modal = document.getElementById(id);
   if (modal) modal.style.display = 'flex';
@@ -494,4 +571,11 @@ function abrirModal(id) {
 function fecharModal(id) {
   const modal = document.getElementById(id);
   if (modal) modal.style.display = 'none';
+}
+
+/* AUXILIAR */
+
+function setTexto(id, valor) {
+  const el = document.getElementById(id);
+  if (el) el.innerText = valor;
 }
