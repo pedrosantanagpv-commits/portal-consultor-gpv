@@ -1,6 +1,6 @@
 const API = "/api/proxy";
 
-// --- FUNÇÃO AUXILIAR DE COMUNICAÇÃO ---
+// --- AUXILIAR ---
 async function apiPost(payload) {
   try {
     const resposta = await fetch(API, {
@@ -10,31 +10,28 @@ async function apiPost(payload) {
     });
     return await resposta.json();
   } catch (erro) {
-    console.error("Erro na requisição:", erro);
-    return { status: "error", message: "Erro ao conectar com o servidor." };
+    console.error("Erro:", erro);
+    return { status: "error", message: "Erro de conexão." };
   }
 }
 
-// --- LOGIN E SESSÃO ---
+// --- LOGIN ---
 async function login() {
   const email = document.getElementById("email").value.trim();
   const senha = document.getElementById("senha").value.trim();
   const resultado = document.getElementById("resultado");
 
   if (!email || !senha) {
-    resultado.innerHTML = "Informe email e senha.";
+    resultado.innerHTML = "Informe os dados.";
     return;
   }
 
-  resultado.innerHTML = "Entrando...";
   const dados = await apiPost({ acao: "login", email, senha });
-
   if (dados.status === "success") {
     localStorage.setItem("usuario", JSON.stringify(dados));
-    carregarInterface(dados);
-    abrirPagina("inicio");
+    location.reload(); 
   } else {
-    resultado.innerHTML = dados.message || "Erro ao fazer login.";
+    resultado.innerHTML = dados.message;
   }
 }
 
@@ -53,7 +50,7 @@ function logout() {
   location.reload();
 }
 
-// --- NAVEGAÇÃO ---
+// --- NAVEGAÇÃO (AQUI ESTAVA O ERRO) ---
 function abrirPagina(pagina) {
   const conteudo = document.getElementById("conteudo");
   const usuario = JSON.parse(localStorage.getItem("usuario"));
@@ -62,115 +59,86 @@ function abrirPagina(pagina) {
     if (usuario.perfil === "SUPER_ADMIN" || usuario.perfil === "ADMINISTRATIVO") {
       carregarDashboardAdmin();
     } else {
-      conteudo.innerHTML = `<h1>Bem-vindo, ${usuario.nome}</h1><div class="card"><p>Cooperativa: ${usuario.cooperativa}</p></div>`;
+      conteudo.innerHTML = `<h1>Olá, ${usuario.nome}</h1><div class="card">Bem-vindo ao portal.</div>`;
     }
   }
+  // Chama as funções que o console disse que não existiam
   if (pagina === "usuarios") telaUsuarios();
   if (pagina === "cooperativas") telaCooperativas();
   if (pagina === "conteudos") telaConteudos();
 }
 
-// --- DASHBOARD COM GRÁFICOS REAIS ---
-async function carregarDashboardAdmin() {
+// --- FUNÇÕES DE TELAS ---
+async function telaUsuarios() {
   const conteudo = document.getElementById("conteudo");
-  const usuario = JSON.parse(localStorage.getItem("usuario"));
-
-  conteudo.innerHTML = `
-    <div class="header-dash">
-        <div class="boas-vindas">
-            <h1>Olá, ${usuario.nome}! 👋</h1>
-            <p>Bem-vindo ao painel administrativo</p>
-        </div>
-        <button onclick="carregarDashboardAdmin()" class="btn-atualizar">🔄 Atualizar dados</button>
-    </div>
-
-    <div class="grid-dashboard-premium">
-      <div class="card-premium border-amarelo">
-        <div class="card-icon bg-amarelo">👥</div>
-        <div class="card-info"><p>Usuários</p><h2 id="totalUsuarios">0</h2><span>Total cadastrados</span></div>
-      </div>
-      <div class="card-premium border-verde">
-        <div class="card-icon bg-verde">👤</div>
-        <div class="card-info"><p>Usuários Ativos</p><h2 id="usuariosAtivos">0</h2><span>Ativos no sistema</span></div>
-      </div>
-      <div class="card-premium border-azul">
-        <div class="card-icon bg-azul">👥</div>
-        <div class="card-info"><p>Consultores</p><h2 id="consultores">0</h2><span>Consultores ativos</span></div>
-      </div>
-      <div class="card-premium border-roxo">
-        <div class="card-icon bg-roxo">📍</div>
-        <div class="card-info"><p>Regionais</p><h2 id="regionais">0</h2><span>Regionais ativos</span></div>
-      </div>
-      <div class="card-premium border-laranja">
-        <div class="card-icon bg-laranja">🏢</div>
-        <div class="card-info"><p>Cooperativas</p><h2 id="cooperativas">0</h2><span>Cadastradas</span></div>
-      </div>
-    </div>
-
-    <div class="row-graficos">
-        <div class="card card-grafico">
-            <h3>📈 Resumo Geral</h3>
-            <div class="chart-container"><canvas id="graficoLinha"></canvas></div>
-            <div class="mini-stats">
-                <div><small>Total</small><p id="miniTotal">0</p></div>
-                <div><small>Ativos</small><p id="miniAtivos" style="color: #2ecc71;">0</p></div>
-                <div><small>Inativos</small><p id="miniInativos" style="color: #e74c3c;">0</p></div>
-            </div>
-        </div>
-        <div class="card card-grafico-pizza">
-            <h3>🍕 Distribuição</h3>
-            <div class="chart-container"><canvas id="graficoDonut"></canvas></div>
-        </div>
-    </div>
-  `;
-
-  const dados = await apiPost({ acao: "dashboardAdmin" });
-  if (dados.status === "success") {
-    // Atualiza números
-    document.getElementById("totalUsuarios").innerText = dados.totalUsuarios;
-    document.getElementById("usuariosAtivos").innerText = dados.usuariosAtivos;
-    document.getElementById("consultores").innerText = dados.totalConsultores;
-    document.getElementById("regionais").innerText = dados.totalRegionais;
-    document.getElementById("cooperativas").innerText = dados.totalCooperativas;
-    document.getElementById("miniTotal").innerText = dados.totalUsuarios;
-    document.getElementById("miniAtivos").innerText = dados.usuariosAtivos;
-    document.getElementById("miniInativos").innerText = (dados.totalUsuarios - dados.usuariosAtivos);
-
-    // Renderiza Gráfico de Linha
-    new Chart(document.getElementById('graficoLinha'), {
-      type: 'line',
-      data: {
-        labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
-        datasets: [{
-          label: 'Novos Usuários',
-          data: [1, 2, 1, 3, 2, 4, dados.totalUsuarios],
-          borderColor: '#ffd000',
-          backgroundColor: 'rgba(255, 208, 0, 0.1)',
-          fill: true,
-          tension: 0.4
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+  conteudo.innerHTML = `<h1>Gerenciamento de Usuários</h1><div class="card">Carregando lista...</div>`;
+  const dados = await apiPost({ acao: "listarUsuarios" });
+  if(dados.status === "success") {
+    let html = `<h1>Usuários</h1><div class="card"><table><tr><th>Nome</th><th>Perfil</th></tr>`;
+    dados.usuarios.forEach(u => {
+      html += `<tr><td>${u.nome}</td><td>${u.perfil}</td></tr>`;
     });
+    html += `</table></div>`;
+    conteudo.innerHTML = html;
+  }
+}
 
-    // Renderiza Gráfico Donut
-    new Chart(document.getElementById('graficoDonut'), {
-      type: 'doughnut',
-      data: {
-        labels: ['Consultores', 'Regionais', 'Outros'],
-        datasets: [{
-          data: [dados.totalConsultores, dados.totalRegionais, (dados.totalUsuarios - dados.totalConsultores - dados.totalRegionais)],
-          backgroundColor: ['#3498db', '#9b59b6', '#ffd000'],
-          borderWidth: 0
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'bottom', labels: { color: '#fff' } } } }
-    });
+async function telaCooperativas() {
+  const conteudo = document.getElementById("conteudo");
+  conteudo.innerHTML = `<h1>Cooperativas</h1><div class="card">Carregando...</div>`;
+  const dados = await apiPost({ acao: "listarCooperativas" });
+  if(dados.status === "success") {
+    let html = `<h1>Cooperativas</h1><div class="card">`;
+    dados.cooperativas.forEach(c => { html += `<p>🏢 ${c.nome} - ${c.cidade}</p>`; });
+    html += `</div>`;
+    conteudo.innerHTML = html;
   }
 }
 
 function telaConteudos() {
-    document.getElementById("conteudo").innerHTML = `<h1>Central do Consultor</h1><div class="card"><p>Materiais e Suporte...</p></div>`;
+  document.getElementById("conteudo").innerHTML = `
+    <h1>Central do Consultor</h1>
+    <div class="card">
+        <h3>Suporte 24h</h3>
+        <p>WhatsApp: (81) 9424-5276</p>
+        <a href="https://wa.me/5581991223928" class="btn-atualizar" style="display:inline-block; text-decoration:none; margin-top:10px;">Chamar Consultor</a>
+    </div>`;
+}
+
+// --- DASHBOARD (GRÁFICOS) ---
+async function carregarDashboardAdmin() {
+  const conteudo = document.getElementById("conteudo");
+  const usuario = JSON.parse(localStorage.getItem("usuario"));
+  conteudo.innerHTML = `
+    <div class="header-dash">
+        <div><h1>Olá, ${usuario.nome}! 👋</h1><p>Painel administrativo</p></div>
+        <button onclick="carregarDashboardAdmin()" class="btn-atualizar">🔄 Atualizar</button>
+    </div>
+    <div class="grid-dashboard-premium">
+        <div class="card-premium border-amarelo"><div class="card-info"><p>Usuários</p><h2 id="totalUsuarios">0</h2></div></div>
+        <div class="card-premium border-verde"><div class="card-info"><p>Ativos</p><h2 id="usuariosAtivos">0</h2></div></div>
+    </div>
+    <div class="row-graficos">
+        <div class="card"><h3>📈 Resumo</h3><div style="height:200px"><canvas id="graficoLinha"></canvas></div></div>
+        <div class="card"><h3>🍕 Distribuição</h3><div style="height:200px"><canvas id="graficoDonut"></canvas></div></div>
+    </div>`;
+
+  const dados = await apiPost({ acao: "dashboardAdmin" });
+  if (dados.status === "success") {
+    document.getElementById("totalUsuarios").innerText = dados.totalUsuarios;
+    document.getElementById("usuariosAtivos").innerText = dados.usuariosAtivos;
+    
+    new Chart(document.getElementById('graficoLinha'), {
+      type: 'line',
+      data: { labels: ['S','T','Q','Q','S','S','D'], datasets: [{ label: 'Novos', data: [1,2,1,3,2,4,dados.totalUsuarios], borderColor: '#ffd000', fill: true, backgroundColor: 'rgba(255,208,0,0.1)' }] },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+    new Chart(document.getElementById('graficoDonut'), {
+      type: 'doughnut',
+      data: { labels: ['Cons.', 'Reg.'], datasets: [{ data: [dados.totalConsultores, dados.totalRegionais], backgroundColor: ['#3498db', '#9b59b6'] }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '70%' }
+    });
+  }
 }
 
 window.onload = function() {
