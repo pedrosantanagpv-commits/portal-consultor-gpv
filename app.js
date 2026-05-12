@@ -38,7 +38,13 @@ async function login(){
       carregarPainel(dados);
       abrirPagina("inicio");
     }else{
-      resultado.innerHTML = dados.message;
+      resultado.innerHTML = `
+   Status: ${dados.status}<br><br>
+   HTTP: ${dados.httpStatus}<br><br>
+   URL: ${dados.finalUrl}<br><br>
+   TYPE: ${dados.contentType}<br><br>
+   PREVIEW:<br>${dados.preview}
+   `;
     }
 
   }catch(erro){
