@@ -1,88 +1,222 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+/* Importação de fonte moderna */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-*{ margin:0; padding:0; box-sizing:border-box; font-family: 'Inter', sans-serif; }
-body{ background:#101010; color:white; -webkit-font-smoothing: antialiased; }
-
-/* ESTRUTURA */
-.topo{ height:70px; background:#1a1a1a; display:flex; justify-content:space-between; align-items:center; padding:0 20px; border-bottom: 1px solid #2a2a2a; }
-.layout{ display:flex; min-height:calc(100vh - 70px); }
-.menu{ width:240px; background:#181818; padding:20px 10px; border-right: 1px solid #2a2a2a; }
-.conteudo{ flex:1; padding:30px; background:#121212; overflow-y: auto; }
-
-/* BOTÕES DO MENU */
-.menu button{
-  width:100%; padding:12px; background:transparent; border:none; border-radius:8px;
-  color:#ccc; text-align:left; cursor:pointer; font-weight:500; transition: 0.2s;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
 }
-.menu button:hover{ background:rgba(255, 208, 0, 0.1); color:#ffd000; }
 
-/* DASHBOARD PREMIUM */
-.header-dash { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-.btn-atualizar { background:#ffd000; color:black; border:none; padding:10px 18px; border-radius:8px; font-weight:bold; cursor:pointer; }
-
-.grid-dashboard-premium { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
-
-.card-premium {
-    background: #151515; padding: 20px; border-radius: 14px;
-    display: flex; align-items: center; gap: 15px; border: 1px solid #222;
+body {
+    background-color: #0d0d0d;
+    color: #ffffff;
+    min-height: 100vh;
+    overflow-x: hidden;
 }
-.card-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; }
 
-.card-info p { color: #888; font-size: 0.8rem; margin: 0; }
-.card-info h2 { font-size: 1.6rem; margin: 2px 0; font-weight: 700; }
-.card-info span { font-size: 0.7rem; color: #555; }
-
-/* CORES DOS CARDS */
-.border-amarelo { border-bottom: 3px solid #ffd000; } .bg-amarelo { background: rgba(255, 208, 0, 0.1); color: #ffd000; }
-.border-verde { border-bottom: 3px solid #2ecc71; } .bg-verde { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
-.border-azul { border-bottom: 3px solid #3498db; } .bg-azul { background: rgba(52, 152, 219, 0.1); color: #3498db; }
-.border-roxo { border-bottom: 3px solid #9b59b6; } .bg-roxo { background: rgba(155, 89, 182, 0.1); color: #9b59b6; }
-.border-laranja { border-bottom: 3px solid #e67e22; } .bg-laranja { background: rgba(230, 126, 34, 0.1); color: #e67e22; }
-
-/* GRÁFICOS */
-.row-graficos { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
-.card { background:#1a1a1a; padding:20px; border-radius:12px; border: 1px solid #2a2a2a; }
-.chart-container { height: 250px; margin: 20px 0; position: relative; }
-.mini-stats { display: flex; justify-content: space-around; padding-top: 15px; border-top: 1px solid #222; }
-.mini-stats div { text-align: center; }
-.mini-stats small { color: #666; font-size: 0.7rem; text-transform: uppercase; }
-.mini-stats p { font-weight: bold; font-size: 1.1rem; }
-
-/* LOGIN */
-#telaLogin { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0d0d0d; }
-.login-box { width: 320px; background: #1a1a1a; padding: 30px; border-radius: 12px; border: 1px solid #2a2a2a; }
-input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #333; border-radius: 8px; background: #0d0d0d; color: white; }
-.login-box button { width: 100%; padding: 12px; background: #ffd000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-
-@media (max-width: 900px) { .row-graficos { grid-template-columns: 1fr; } }
-/* Ajuste para o formulário de login centralizado */
+/* --- TELA DE LOGIN (CORREÇÃO DA IMAGE_90B345) --- */
 #telaLogin {
     display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
+    align-items: center;
     height: 100vh;
-    text-align: center;
+    width: 100%;
+    background: radial-gradient(circle at center, #1a1a1a 0%, #0d0d0d 100%);
 }
 
 .login-box {
-    background: #1a1a1a;
+    background: #151515;
     padding: 40px;
-    border-radius: 12px;
+    border-radius: 16px;
     width: 100%;
-    max-width: 350px;
-    border: 1px solid #333;
+    max-width: 380px;
+    border: 1px solid #2a2a2a;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.login-box h1 {
+    margin-bottom: 25px;
+    color: #ffd000;
+    font-size: 1.8rem;
 }
 
 .login-box input {
-    display: block;
     width: 100%;
+    padding: 14px;
     margin-bottom: 15px;
-    padding: 12px;
-    background: #000;
-    border: 1px solid #444;
+    background: #080808;
+    border: 1px solid #333;
     color: #fff;
-    border-radius: 6px;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.3s;
 }
 
-#resultado { margin-top: 10px; color: #ff4444; font-size: 0.9rem; }
+.login-box input:focus {
+    border-color: #ffd000;
+}
+
+.login-box button {
+    width: 100%;
+    padding: 14px;
+    background: #ffd000;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #000;
+    transition: transform 0.2s, background 0.3s;
+}
+
+.login-box button:hover {
+    background: #e6bc00;
+    transform: translateY(-2px);
+}
+
+#resultado {
+    margin-top: 15px;
+    color: #ff4d4d;
+    font-size: 0.9rem;
+}
+
+/* --- ESTRUTURA DO PAINEL --- */
+.topo {
+    height: 70px;
+    background: #151515;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 25px;
+    border-bottom: 1px solid #252525;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.layout {
+    display: flex;
+    min-height: calc(100vh - 70px);
+}
+
+.menu {
+    width: 260px;
+    background: #111111;
+    padding: 20px 15px;
+    border-right: 1px solid #252525;
+}
+
+.menu button {
+    width: 100%;
+    padding: 12px 15px;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    color: #999;
+    text-align: left;
+    cursor: pointer;
+    font-weight: 500;
+    margin-bottom: 5px;
+    transition: all 0.3s;
+}
+
+.menu button:hover {
+    background: rgba(255, 208, 0, 0.05);
+    color: #ffd000;
+}
+
+.menu button.active {
+    background: rgba(255, 208, 0, 0.1);
+    color: #ffd000;
+}
+
+/* --- ÁREA DE CONTEÚDO --- */
+.conteudo {
+    flex: 1;
+    padding: 30px;
+    background: #0d0d0d;
+}
+
+h1 { margin-bottom: 20px; font-weight: 700; }
+
+/* --- CARDS DASHBOARD (CONFORME IMAGE_912879) --- */
+.grid-dashboard-premium {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.card-premium {
+    background: #151515;
+    padding: 25px;
+    border-radius: 16px;
+    border: 1px solid #252525;
+    transition: transform 0.3s;
+}
+
+.card-premium:hover { transform: translateY(-5px); }
+
+.card-info p { color: #888; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; }
+.card-info h2 { font-size: 2rem; margin: 5px 0; color: #fff; }
+
+.border-amarelo { border-bottom: 4px solid #ffd000; }
+.border-verde { border-bottom: 4px solid #2ecc71; }
+.border-azul { border-bottom: 4px solid #3498db; }
+
+/* --- SEÇÃO DE GRÁFICOS --- */
+.row-graficos {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 25px;
+}
+
+.card {
+    background: #151515;
+    padding: 25px;
+    border-radius: 16px;
+    border: 1px solid #252525;
+}
+
+.card h3 { margin-bottom: 20px; font-size: 1.1rem; color: #eee; }
+
+/* --- TABELAS E LISTAS (TELA DE USUÁRIOS) --- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+th {
+    text-align: left;
+    color: #666;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    padding: 12px 0;
+    border-bottom: 1px solid #252525;
+}
+
+td {
+    padding: 15px 0;
+    border-bottom: 1px solid #1a1a1a;
+    font-size: 0.95rem;
+}
+
+/* --- BOTÕES GERAIS --- */
+.btn-atualizar {
+    background: #ffd000;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+/* Responsividade */
+@media (max-width: 1024px) {
+    .row-graficos { grid-template-columns: 1fr; }
+    .menu { width: 80px; }
+    .menu button span { display: none; }
+}
