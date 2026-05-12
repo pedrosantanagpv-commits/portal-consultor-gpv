@@ -1,59 +1,53 @@
-/* =========================
-   CONFIGURAÇÃO
-========================= */
-
 const API = "/api/proxy";
 
-/* =========================
-   LOGIN / SESSÃO
-========================= */
+async function apiPost(payload) {
+  const resposta = await fetch(API, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
 
-async function login(){
+  return await resposta.json();
+}
+
+/* LOGIN */
+
+async function login() {
   const email = document.getElementById("email").value.trim();
   const senha = document.getElementById("senha").value.trim();
-
   const resultado = document.getElementById("resultado");
 
-  if(!email || !senha){
+  if (!email || !senha) {
     resultado.innerHTML = "Informe email e senha.";
     return;
   }
 
   resultado.innerHTML = "Entrando...";
 
-  try{
-    const resposta = await fetch(API,{
-  method:"POST",
-  body:JSON.stringify({
-    acao:"login",
-    email:email,
-    senha:senha
-  })
-});
+  try {
+    const dados = await apiPost({
+      acao: "login",
+      email,
+      senha
+    });
 
-    const dados = await resposta.json();
-
-    if(dados.status === "success"){
+    if (dados.status === "success") {
       localStorage.setItem("usuario", JSON.stringify(dados));
       carregarPainel(dados);
       abrirPagina("inicio");
-    }else{
-      resultado.innerHTML = `
-   Status: ${dados.status}<br><br>
-   HTTP: ${dados.httpStatus}<br><br>
-   URL: ${dados.finalUrl}<br><br>
-   TYPE: ${dados.contentType}<br><br>
-   PREVIEW:<br>${dados.preview}
-   `;
+    } else {
+      resultado.innerHTML = dados.message || "Erro ao fazer login.";
     }
 
-  }catch(erro){
+  } catch (erro) {
     resultado.innerHTML = "Erro ao conectar com a API.";
     console.log(erro);
   }
 }
 
-function carregarPainel(usuario){
+function carregarPainel(usuario) {
   document.getElementById("telaLogin").style.display = "none";
   document.getElementById("painel").style.display = "block";
 
@@ -62,32 +56,28 @@ function carregarPainel(usuario){
 
   const menuAdmin = document.getElementById("menuAdmin");
 
-  if(usuario.perfil !== "SUPER_ADMIN" && usuario.perfil !== "ADMINISTRATIVO"){
+  if (usuario.perfil !== "SUPER_ADMIN" && usuario.perfil !== "ADMINISTRATIVO") {
     menuAdmin.style.display = "none";
-  }else{
+  } else {
     menuAdmin.style.display = "block";
   }
 }
 
-function logout(){
+function logout() {
   localStorage.removeItem("usuario");
   location.reload();
 }
 
-window.onload = function(){
+window.onload = function () {
   const usuario = localStorage.getItem("usuario");
 
-  if(usuario){
+  if (usuario) {
     carregarPainel(JSON.parse(usuario));
     abrirPagina("inicio");
   }
 };
 
-/* =========================
-   PERMISSÕES
-========================= */
-
-function usuarioAdmin(){
+function usuarioAdmin() {
   const usuario = JSON.parse(localStorage.getItem("usuario"));
 
   return usuario && (
@@ -96,17 +86,14 @@ function usuarioAdmin(){
   );
 }
 
-/* =========================
-   ROTAS / PÁGINAS
-========================= */
+/* ROTAS */
 
-function abrirPagina(pagina){
+function abrirPagina(pagina) {
   const conteudo = document.getElementById("conteudo");
+  const usuario = JSON.parse(localStorage.getItem("usuario"));
 
-  if(pagina === "inicio"){
-    const usuario = JSON.parse(localStorage.getItem("usuario"));
-
-    if(usuario.perfil === "CONSULTOR"){
+  if (pagina === "inicio") {
+    if (usuario.perfil === "CONSULTOR") {
       conteudo.innerHTML = `
         <h1>Painel do Consultor</h1>
 
@@ -127,7 +114,7 @@ function abrirPagina(pagina){
       `;
     }
 
-    else if(usuario.perfil === "REGIONAL"){
+    else if (usuario.perfil === "REGIONAL") {
       conteudo.innerHTML = `
         <h1>Painel Regional</h1>
 
@@ -148,13 +135,13 @@ function abrirPagina(pagina){
       `;
     }
 
-    else{
+    else {
       carregarDashboardAdmin();
     }
   }
 
-  if(pagina === "usuarios"){
-    if(!usuarioAdmin()){
+  if (pagina === "usuarios") {
+    if (!usuarioAdmin()) {
       conteudo.innerHTML = `<div class="card">Acesso não permitido.</div>`;
       return;
     }
@@ -162,8 +149,8 @@ function abrirPagina(pagina){
     telaUsuarios();
   }
 
-  if(pagina === "cooperativas"){
-    if(!usuarioAdmin()){
+  if (pagina === "cooperativas") {
+    if (!usuarioAdmin()) {
       conteudo.innerHTML = `<div class="card">Acesso não permitido.</div>`;
       return;
     }
@@ -171,7 +158,7 @@ function abrirPagina(pagina){
     telaCooperativas();
   }
 
-  if(pagina === "conteudos"){
+  if (pagina === "conteudos") {
     conteudo.innerHTML = `
       <h1>Conteúdos</h1>
       <div class="card">Área de conteúdos e procedimentos.</div>
@@ -179,11 +166,9 @@ function abrirPagina(pagina){
   }
 }
 
-/* =========================
-   DASHBOARD ADMIN
-========================= */
+/* DASHBOARD */
 
-async function carregarDashboardAdmin(){
+async function carregarDashboardAdmin() {
   const conteudo = document.getElementById("conteudo");
 
   conteudo.innerHTML = `
@@ -217,17 +202,12 @@ async function carregarDashboardAdmin(){
     </div>
   `;
 
-  try{
-    const resposta = await fetch(API,{
-      method:"POST",
-      body:JSON.stringify({
-        acao:"dashboardAdmin"
-      })
+  try {
+    const dados = await apiPost({
+      acao: "dashboardAdmin"
     });
 
-    const dados = await resposta.json();
-    console.log("DASHBOARD:", dados);
-    if(dados.status === "success"){
+    if (dados.status === "success") {
       document.getElementById("totalUsuarios").innerText = dados.totalUsuarios;
       document.getElementById("usuariosAtivos").innerText = dados.usuariosAtivos;
       document.getElementById("consultores").innerText = dados.totalConsultores;
@@ -235,16 +215,14 @@ async function carregarDashboardAdmin(){
       document.getElementById("cooperativas").innerText = dados.totalCooperativas;
     }
 
-  }catch(erro){
+  } catch (erro) {
     console.log(erro);
   }
 }
 
-/* =========================
-   USUÁRIOS
-========================= */
+/* USUÁRIOS */
 
-function telaUsuarios(){
+function telaUsuarios() {
   const conteudo = document.getElementById("conteudo");
 
   conteudo.innerHTML = `
@@ -253,9 +231,7 @@ function telaUsuarios(){
     <div class="card">
       <div class="submenu">
         <button onclick="mostrarCriarUsuario()">Criar Usuário</button>
-        <button onclick="mostrarGerenciarUsuarios()" class="btn-secundario">
-          Gerenciar Usuários
-        </button>
+        <button onclick="mostrarGerenciarUsuarios()" class="btn-secundario">Gerenciar Usuários</button>
       </div>
 
       <div id="usuariosConteudo" class="area-interna"></div>
@@ -263,7 +239,7 @@ function telaUsuarios(){
   `;
 }
 
-async function mostrarCriarUsuario(){
+async function mostrarCriarUsuario() {
   const area = document.getElementById("usuariosConteudo");
 
   area.innerHTML = `
@@ -271,7 +247,9 @@ async function mostrarCriarUsuario(){
     <input type="email" id="novoEmail" placeholder="Email">
     <input type="password" id="novaSenha" placeholder="Senha">
 
-    <select id="novaCooperativa"></select>
+    <select id="novaCooperativa">
+      <option>Carregando...</option>
+    </select>
 
     <select id="novoPerfil">
       <option value="CONSULTOR">CONSULTOR</option>
@@ -288,7 +266,7 @@ async function mostrarCriarUsuario(){
   carregarSelectCooperativas();
 }
 
-function mostrarGerenciarUsuarios(){
+function mostrarGerenciarUsuarios() {
   const area = document.getElementById("usuariosConteudo");
 
   area.innerHTML = `
@@ -298,22 +276,17 @@ function mostrarGerenciarUsuarios(){
   carregarUsuarios();
 }
 
-async function carregarUsuarios(){
+async function carregarUsuarios() {
   const lista = document.getElementById("listaUsuarios");
 
   lista.innerHTML = `<div class="card">Carregando usuários...</div>`;
 
-  try{
-    const resposta = await fetch(API,{
-      method:"POST",
-      body:JSON.stringify({
-        acao:"listarUsuarios"
-      })
+  try {
+    const dados = await apiPost({
+      acao: "listarUsuarios"
     });
 
-    const dados = await resposta.json();
-
-    if(dados.status === "success"){
+    if (dados.status === "success") {
       let html = "";
 
       dados.usuarios.forEach(usuario => {
@@ -324,15 +297,17 @@ async function carregarUsuarios(){
             <p>Perfil: ${usuario.perfil || "-"}</p>
             <p>Cooperativa: ${usuario.cooperativa || "-"}</p>
             <p>Status: ${usuario.status || "-"}</p>
+
             <button onclick='abrirModalEditar(
-            "${usuario.nome || ""}",
-            "${usuario.email || ""}",
-            "${usuario.perfil || ""}",
-            "${usuario.cooperativa || ""}",
-            "${usuario.status || ""}"
-)'>
-Editar
-</button>
+              "${usuario.nome || ""}",
+              "${usuario.email || ""}",
+              "${usuario.perfil || ""}",
+              "${usuario.cooperativa || ""}",
+              "${usuario.status || ""}"
+            )'>
+              Editar
+            </button>
+
             ${
               usuario.status === "ATIVO"
               ? `<button class="btn-secundario" onclick="alterarStatus('${usuario.id}', 'INATIVO')">Inativar</button>`
@@ -345,13 +320,13 @@ Editar
       lista.innerHTML = html;
     }
 
-  }catch(erro){
+  } catch (erro) {
     lista.innerHTML = `<div class="card">Erro de conexão com API.</div>`;
     console.log(erro);
   }
 }
 
-async function criarUsuario(){
+async function criarUsuario() {
   const nome = document.getElementById("novoNome").value.trim();
   const email = document.getElementById("novoEmail").value.trim();
   const senha = document.getElementById("novaSenha").value.trim();
@@ -360,102 +335,82 @@ async function criarUsuario(){
 
   const retorno = document.getElementById("retornoCadastro");
 
-  if(!nome || !email || !senha || !perfil || !cooperativa){
+  if (!nome || !email || !senha || !perfil || !cooperativa) {
     retorno.innerHTML = "Preencha todos os campos obrigatórios.";
     return;
   }
 
   retorno.innerHTML = "Criando usuário...";
 
-  try{
-    const resposta = await fetch(API,{
-      method:"POST",
-      body:JSON.stringify({
-        acao:"criarUsuario",
-        nome:nome,
-        email:email,
-        senha:senha,
-        perfil:perfil,
-        cooperativa:cooperativa
-      })
+  try {
+    const dados = await apiPost({
+      acao: "criarUsuario",
+      nome,
+      email,
+      senha,
+      perfil,
+      cooperativa
     });
 
-    const dados = await resposta.json();
-
     retorno.innerHTML = dados.message;
-    mostrarGerenciarUsuarios();
 
-  }catch(erro){
+    if (dados.status === "success") {
+      mostrarGerenciarUsuarios();
+    }
+
+  } catch (erro) {
     retorno.innerHTML = "Erro ao criar usuário.";
     console.log(erro);
   }
 }
 
-async function alterarStatus(id, status){
-  try{
-    const resposta = await fetch(API,{
-      method:"POST",
-      body:JSON.stringify({
-        acao:"alterarStatusUsuario",
-        id:id,
-        status:status
-      })
+async function alterarStatus(id, status) {
+  try {
+    const dados = await apiPost({
+      acao: "alterarStatusUsuario",
+      id,
+      status
     });
-
-    const dados = await resposta.json();
 
     alert(dados.message);
     carregarUsuarios();
 
-  }catch(erro){
-    alert("Erro ao alterar status");
+  } catch (erro) {
+    alert("Erro ao alterar status.");
     console.log(erro);
   }
 }
 
-async function carregarSelectCooperativas(){
+async function carregarSelectCooperativas() {
   const select = document.getElementById("novaCooperativa");
 
-  if(!select){
-    return;
-  }
+  if (!select) return;
 
   select.innerHTML = `<option>Carregando...</option>`;
 
-  try{
-    const resposta = await fetch(API,{
-      method:"POST",
-      body:JSON.stringify({
-        acao:"listarCooperativas"
-      })
+  try {
+    const dados = await apiPost({
+      acao: "listarCooperativas"
     });
 
-    const dados = await resposta.json();
-
-    if(dados.status === "success"){
+    if (dados.status === "success") {
       let options = `<option value="">Selecione a Cooperativa</option>`;
 
       dados.cooperativas.forEach(coop => {
-        options += `
-          <option value="${coop.nome}">
-            ${coop.nome}
-          </option>
-        `;
+        options += `<option value="${coop.nome}">${coop.nome}</option>`;
       });
 
       select.innerHTML = options;
     }
 
-  }catch(erro){
+  } catch (erro) {
     console.log(erro);
   }
 }
 
-/* =========================
-   COOPERATIVAS
-========================= */
+/* COOPERATIVAS */
 
-function telaCooperativas(){
+function telaCooperativas() {
   const conteudo = document.getElementById("conteudo");
 
   conteudo.innerHTML = `
@@ -464,9 +419,7 @@ function telaCooperativas(){
     <div class="card">
       <div class="submenu">
         <button onclick="mostrarCriarCooperativa()">Criar Cooperativa</button>
-        <button onclick="mostrarGerenciarCooperativas()" class="btn-secundario">
-          Gerenciar Cooperativas
-        </button>
+        <button onclick="mostrarGerenciarCooperativas()" class="btn-secundario">Gerenciar Cooperativas</button>
       </div>
 
       <div id="cooperativasConteudo" class="area-interna"></div>
@@ -474,7 +427,7 @@ function telaCooperativas(){
   `;
 }
 
-function mostrarCriarCooperativa(){
+function mostrarCriarCooperativa() {
   const area = document.getElementById("cooperativasConteudo");
 
   area.innerHTML = `
@@ -488,7 +441,7 @@ function mostrarCriarCooperativa(){
   `;
 }
 
-function mostrarGerenciarCooperativas(){
+function mostrarGerenciarCooperativas() {
   const area = document.getElementById("cooperativasConteudo");
 
   area.innerHTML = `
@@ -498,22 +451,17 @@ function mostrarGerenciarCooperativas(){
   carregarCooperativas();
 }
 
-async function carregarCooperativas(){
+async function carregarCooperativas() {
   const lista = document.getElementById("listaCooperativas");
 
   lista.innerHTML = `<div class="card">Carregando cooperativas...</div>`;
 
-  try{
-    const resposta = await fetch(API,{
-      method:"POST",
-      body:JSON.stringify({
-        acao:"listarCooperativas"
-      })
+  try {
+    const dados = await apiPost({
+      acao: "listarCooperativas"
     });
 
-    const dados = await resposta.json();
-
-    if(dados.status === "success"){
+    if (dados.status === "success") {
       let html = "";
 
       dados.cooperativas.forEach(coop => {
@@ -531,67 +479,63 @@ async function carregarCooperativas(){
       lista.innerHTML = html;
     }
 
-  }catch(erro){
+  } catch (erro) {
     lista.innerHTML = `<div class="card">Erro de conexão com API.</div>`;
     console.log(erro);
   }
 }
 
-async function criarCooperativa(){
+async function criarCooperativa() {
   const nome = document.getElementById("coopNome").value.trim();
   const regional = document.getElementById("coopRegional").value.trim();
   const cidade = document.getElementById("coopCidade").value.trim();
 
   const retorno = document.getElementById("retornoCooperativa");
 
-  if(!nome || !regional || !cidade){
+  if (!nome || !regional || !cidade) {
     retorno.innerHTML = "Preencha todos os campos obrigatórios.";
     return;
   }
 
   retorno.innerHTML = "Criando cooperativa...";
 
-  try{
-    const resposta = await fetch(API,{
-      method:"POST",
-      body:JSON.stringify({
-        acao:"criarCooperativa",
-        nome:nome,
-        regional:regional,
-        cidade:cidade
-      })
+  try {
+    const dados = await apiPost({
+      acao: "criarCooperativa",
+      nome,
+      regional,
+      cidade
     });
 
-    const dados = await resposta.json();
-
     retorno.innerHTML = dados.message;
-    mostrarGerenciarCooperativas();
 
-  }catch(erro){
+    if (dados.status === "success") {
+      mostrarGerenciarCooperativas();
+    }
+
+  } catch (erro) {
     retorno.innerHTML = "Erro ao criar cooperativa.";
     console.log(erro);
   }
 }
-function abrirModalEditar(nome, email, perfil, cooperativa, status){
 
+/* MODAL EDITAR USUÁRIO */
+
+function abrirModalEditar(nome, email, perfil, cooperativa, status) {
   const modalExistente = document.getElementById("modalEditar");
 
-  if(modalExistente){
+  if (modalExistente) {
     modalExistente.remove();
   }
 
   const modal = document.createElement("div");
-
   modal.id = "modalEditar";
 
   modal.innerHTML = `
-  
     <div class="modal-box">
-
       <h2>Editar Usuário</h2>
 
       <input type="text" id="editNome" value="${nome}">
-      
       <input type="email" id="editEmail" value="${email}" disabled>
 
       <select id="editPerfil">
@@ -602,7 +546,7 @@ function abrirModalEditar(nome, email, perfil, cooperativa, status){
       </select>
 
       <select id="editCooperativa">
-      <option>Carregando...</option>
+        <option>Carregando...</option>
       </select>
 
       <select id="editStatus">
@@ -611,109 +555,82 @@ function abrirModalEditar(nome, email, perfil, cooperativa, status){
       </select>
 
       <button onclick="salvarEdicaoUsuario()">Salvar Alterações</button>
-
-      <button class="btn-secundario" onclick="fecharModalEditar()">
-        Cancelar
-      </button>
-
+      <button class="btn-secundario" onclick="fecharModalEditar()">Cancelar</button>
     </div>
-
   `;
 
   document.body.appendChild(modal);
 
   document.getElementById("editPerfil").value = perfil;
   document.getElementById("editStatus").value = status;
+
   carregarCooperativasEdicao(cooperativa);
 }
-function fecharModalEditar(){
 
+function fecharModalEditar() {
   const modal = document.getElementById("modalEditar");
 
-  if(modal){
+  if (modal) {
     modal.remove();
   }
 }
-async function salvarEdicaoUsuario(){
 
-  const nome = document.getElementById("editNome").value;
-  const email = document.getElementById("editEmail").value;
+async function salvarEdicaoUsuario() {
+  const nome = document.getElementById("editNome").value.trim();
+  const email = document.getElementById("editEmail").value.trim();
   const perfil = document.getElementById("editPerfil").value;
   const cooperativa = document.getElementById("editCooperativa").value;
   const status = document.getElementById("editStatus").value;
 
-  try{
-
-    const resposta = await fetch(API,{
-      method:"POST",
-      body:JSON.stringify({
-        acao:"editarUsuario",
-        nome,
-        email,
-        perfil,
-        cooperativa,
-        status
-      })
+  try {
+    const dados = await apiPost({
+      acao: "editarUsuario",
+      nome,
+      email,
+      perfil,
+      cooperativa,
+      status
     });
 
-    const dados = await resposta.json();
-
-    if(dados.status === "success"){
-
+    if (dados.status === "success") {
       alert("Usuário atualizado com sucesso.");
-
       fecharModalEditar();
-
       carregarUsuarios();
-
       carregarDashboardAdmin();
-
-    }else{
-
+    } else {
       alert(dados.message || "Erro ao atualizar.");
     }
 
-  }catch(erro){
-
+  } catch (erro) {
     console.log(erro);
-
     alert("Erro de conexão.");
   }
 }
-async function carregarCooperativasEdicao(cooperativaSelecionada){
 
-  try{
-
-    const resposta = await fetch(API,{
-      method:"POST",
-      body:JSON.stringify({
-        acao:"listarCooperativas"
-      })
+async function carregarCooperativasEdicao(cooperativaSelecionada) {
+  try {
+    const dados = await apiPost({
+      acao: "listarCooperativas"
     });
-
-    const dados = await resposta.json();
 
     const select = document.getElementById("editCooperativa");
 
     select.innerHTML = "";
 
     dados.cooperativas.forEach(coop => {
-
       const option = document.createElement("option");
 
       option.value = coop.nome;
       option.textContent = coop.nome;
 
-      if(coop.nome === cooperativaSelecionada){
+      if (coop.nome === cooperativaSelecionada) {
         option.selected = true;
       }
 
       select.appendChild(option);
-
     });
 
-  }catch(erro){
-
+  } catch (erro) {
     console.log(erro);
   }
 }
