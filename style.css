@@ -69,11 +69,6 @@ body {
   color: #000;
   font-weight: bold;
   cursor: pointer;
-  transition: 0.2s;
-}
-
-.login-box button:hover {
-  opacity: 0.9;
 }
 
 /* APP */
@@ -112,15 +107,14 @@ body {
 
 .menu-item {
   width: 100%;
-  height: 48px;
+  min-height: 48px;
   background: transparent;
   border: none;
   border-radius: 12px;
-  color: #cfcfcf;
+  color: #ffffff;
   cursor: pointer;
   text-align: left;
   padding: 0 18px;
-  transition: 0.2s;
   font-size: 15px;
 }
 
@@ -148,7 +142,8 @@ body {
 
 .main-content {
   flex: 1;
-  padding: 30px;
+  padding: 25px 30px;
+  overflow-x: hidden;
 }
 
 .topbar {
@@ -160,36 +155,37 @@ body {
   align-items: center;
   justify-content: flex-end;
   padding: 0 25px;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
 .topbar h2 {
   font-size: 15px;
-  color: #d8d8d8;
+  color: #ffffff;
 }
 
-/* SECTION */
+/* SECTIONS */
 
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 25px;
+  margin-bottom: 22px;
   gap: 20px;
 }
 
 .section-header h1 {
-  font-size: 28px;
-  margin-bottom: 5px;
+  font-size: 30px;
+  margin-bottom: 4px;
 }
 
 .section-header p {
-  color: #9f9f9f;
+  color: #bdbdbd;
+  font-size: 15px;
 }
 
 .section-header button {
-  height: 45px;
-  padding: 0 20px;
+  height: 46px;
+  padding: 0 22px;
   border: none;
   border-radius: 12px;
   background: #ffcc00;
@@ -208,9 +204,9 @@ body {
 
 .card-dashboard {
   background: #151515;
-  border: 1px solid #232323;
-  border-radius: 20px;
-  padding: 25px;
+  border: 1px solid #292929;
+  border-radius: 18px;
+  padding: 28px;
 }
 
 .card-dashboard span {
@@ -222,7 +218,7 @@ body {
 }
 
 .card-dashboard small {
-  color: #b5b5b5;
+  color: #d6d6d6;
   font-size: 14px;
 }
 
@@ -237,7 +233,7 @@ body {
 
 .mini-card {
   background: #151515;
-  border: 1px solid #232323;
+  border: 1px solid #292929;
   border-radius: 16px;
   padding: 20px;
 }
@@ -251,7 +247,7 @@ body {
 }
 
 .mini-card small {
-  color: #a7a7a7;
+  color: #cfcfcf;
 }
 
 /* FILTROS */
@@ -292,7 +288,7 @@ body {
   width: 100%;
   overflow-x: auto;
   background: #151515;
-  border: 1px solid #232323;
+  border: 1px solid #292929;
   border-radius: 20px;
 }
 
@@ -309,17 +305,17 @@ thead th {
   text-align: left;
   padding: 18px;
   font-size: 14px;
-  color: #b8b8b8;
+  color: #d8d8d8;
 }
 
 tbody td {
   padding: 18px;
-  border-top: 1px solid #222;
+  border-top: 1px solid #252525;
   font-size: 14px;
 }
 
 tbody tr:hover {
-  background: rgba(255, 204, 0, 0.03);
+  background: rgba(255, 204, 0, 0.035);
 }
 
 tbody td strong {
@@ -328,7 +324,7 @@ tbody td strong {
 }
 
 tbody td small {
-  color: #8e8e8e;
+  color: #9a9a9a;
 }
 
 .empty-table {
@@ -337,12 +333,10 @@ tbody td small {
   color: #8d8d8d;
 }
 
-/* TAG */
+/* TAGS */
 
 .tag {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
   padding: 7px 12px;
   border-radius: 999px;
   background: rgba(255, 204, 0, 0.12);
@@ -350,8 +344,6 @@ tbody td small {
   font-size: 12px;
   font-weight: bold;
 }
-
-/* STATUS */
 
 .status {
   display: inline-flex;
@@ -390,14 +382,169 @@ tbody td small {
   cursor: pointer;
   background: #242424;
   color: #fff;
-}
-
-.acoes button:hover {
-  opacity: 0.9;
+  font-weight: bold;
 }
 
 .acoes .danger {
   background: #ff4a4a;
+}
+
+/* CENTRAL DO CONSULTOR */
+
+.central-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-bottom: 28px;
+}
+
+.central-card {
+  min-height: 430px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015)),
+    #121212;
+  border: 1px solid #292929;
+  border-radius: 22px;
+  padding: 26px;
+  overflow: hidden;
+}
+
+.central-card h2 {
+  font-size: 24px;
+  margin-bottom: 18px;
+  color: #ffffff;
+}
+
+.banner-central {
+  width: 100%;
+  height: 210px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #1b1b1b;
+  border: 1px solid #2a2a2a;
+  margin-bottom: 20px;
+}
+
+.banner-central img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.central-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.central-item {
+  background: #1a1a1a;
+  border: 1px solid #292929;
+  border-radius: 14px;
+  padding: 15px 16px;
+  color: #f2f2f2;
+  font-size: 15px;
+}
+
+.central-botoes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 15px;
+}
+
+.btn-central {
+  width: 100%;
+  min-height: 58px;
+  border: 1px solid #303030;
+  border-radius: 16px;
+  background: #1a1a1a;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: left;
+  padding: 0 18px;
+}
+
+.btn-central:hover {
+  border-color: #ffcc00;
+  background: rgba(255, 204, 0, 0.08);
+}
+
+.btn-central.destaque {
+  background: #ffcc00;
+  color: #000;
+  border-color: #ffcc00;
+}
+
+.btn-central.destaque span {
+  font-weight: 900;
+}
+
+/* CONTATOS */
+
+.contatos-box {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015)),
+    #121212;
+  border: 1px solid #ff3b30;
+  border-radius: 18px;
+  padding: 24px 28px;
+}
+
+.contatos-box h2 {
+  text-align: center;
+  font-size: 22px;
+  color: #ff4a4a;
+  margin-bottom: 22px;
+  text-transform: uppercase;
+}
+
+.contatos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap: 24px;
+  align-items: center;
+}
+
+.contato-coluna {
+  text-align: center;
+}
+
+.contato-coluna h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+  color: #ffffff;
+  text-transform: uppercase;
+}
+
+.contato-coluna p {
+  color: #ffffff;
+  font-size: 15px;
+  margin-bottom: 5px;
+}
+
+.link-suporte {
+  color: #25d366;
+  text-decoration: none;
+  font-weight: bold;
+  display: inline-block;
+  margin-top: 8px;
+}
+
+.btn-whatsapp {
+  display: block;
+  width: 100%;
+  max-width: 280px;
+  height: 45px;
+  line-height: 45px;
+  background: #25d366;
+  color: #ffffff;
+  text-decoration: none;
+  border-radius: 999px;
+  font-weight: bold;
+  margin: 8px auto;
+  text-align: center;
 }
 
 /* MODAL */
@@ -481,6 +628,16 @@ tbody td small {
 
 /* RESPONSIVO */
 
+@media (max-width: 1100px) {
+  .central-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .contatos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 900px) {
 
   .app-layout {
@@ -501,6 +658,7 @@ tbody td small {
   .menu {
     flex-direction: row;
     flex: 1;
+    overflow-x: auto;
   }
 
   .main-content {
@@ -537,6 +695,14 @@ tbody td small {
 
   .acoes {
     flex-direction: column;
+  }
+
+  .central-card {
+    padding: 20px;
+  }
+
+  .banner-central {
+    height: 170px;
   }
 
 }
