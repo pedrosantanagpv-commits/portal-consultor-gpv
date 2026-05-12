@@ -1,64 +1,54 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<title>Portal Consultor</title>
-
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>Portal Consultor</title>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<!-- =========================
-     TELA DE LOGIN
-========================= -->
+  <div class="login" id="telaLogin">
+    <div class="box">
+      <h2>Portal Consultor</h2>
 
-<div class="login" id="telaLogin">
-  <div class="box">
-    <h2>Portal Consultor</h2>
+      <input type="email" id="email" placeholder="Email">
+      <input type="password" id="senha" placeholder="Senha">
 
-    <input type="email" id="email" placeholder="Email">
-    <input type="password" id="senha" placeholder="Senha">
+      <button onclick="login()">Entrar</button>
 
-    <button onclick="login()">Entrar</button>
-
-    <div id="resultado"></div>
-  </div>
-</div>
-
-<!-- =========================
-     PAINEL PRINCIPAL
-========================= -->
-
-<div class="painel" id="painel">
-
-  <div class="topo">
-    <h3>Portal Consultor</h3>
-    <div>
-      <span id="usuarioNome"></span> |
-      <span id="usuarioPerfil"></span>
+      <div id="resultado"></div>
     </div>
   </div>
 
-  <div class="menu">
-    <button onclick="abrirPagina('inicio')">Início</button>
+  <div class="painel" id="painel">
 
-    <div id="menuAdmin">
-      <button onclick="abrirPagina('usuarios')">Usuários</button>
-      <button onclick="abrirPagina('cooperativas')">Cooperativas</button>
+    <div class="topo">
+      <strong>Portal Consultor</strong>
+      <span><span id="usuarioNome"></span> | <span id="usuarioPerfil"></span></span>
     </div>
 
-    <button onclick="abrirPagina('conteudos')">Conteúdos</button>
-    <button onclick="logout()">Sair</button>
+    <div class="layout">
+
+      <div class="menu">
+        <button onclick="abrirPagina('inicio')">Início</button>
+
+        <div id="menuAdmin">
+          <button onclick="abrirPagina('usuarios')">Usuários</button>
+          <button onclick="abrirPagina('cooperativas')">Cooperativas</button>
+        </div>
+
+        <button onclick="abrirPagina('conteudos')">Conteúdos</button>
+        <button onclick="logout()">Sair</button>
+      </div>
+
+      <div class="conteudo" id="conteudo">
+        <h1>Bem-vindo ao Portal</h1>
+      </div>
+
+    </div>
   </div>
 
-  <div class="conteudo" id="conteudo">
-    <h1>Bem-vindo ao Portal</h1>
-  </div>
-
-</div>
-
-
-<script src="app.js"></script>
-
+  <script src="app.js"></script>
 </body>
 </html>
