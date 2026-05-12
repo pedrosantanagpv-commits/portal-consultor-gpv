@@ -66,6 +66,10 @@
             Central do Consultor
           </button>
 
+          <button class="menu-item" data-aba="processos" onclick="mostrarAba('processos')">
+            Processos Administrativos
+          </button>
+
         </nav>
 
       </div>
@@ -291,7 +295,7 @@
 
         <div class="central-grid">
 
-          <!-- BLOCO ESQUERDO -->
+          <!-- ESQUERDA -->
 
           <div class="central-card">
 
@@ -301,7 +305,7 @@
 
               <img
                 src="https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?q=80&w=1200"
-                alt="Banner GPV"
+                alt="Banner"
               />
 
             </div>
@@ -324,16 +328,20 @@
 
           </div>
 
-          <!-- BLOCO DIREITO -->
+          <!-- DIREITA -->
 
           <div class="central-card">
 
-            <h2>Materiais e Ferramentas</h2>
+            <h2>Ferramentas e Processos</h2>
 
             <div class="central-botoes">
 
-              <button class="btn-central">
-                Portal Financeiro
+              <button
+                id="btnCadastroConsultor"
+                class="btn-central"
+                onclick="abrirModalConsultor()"
+              >
+                Cadastro de Consultor
               </button>
 
               <button class="btn-central">
@@ -345,10 +353,13 @@
               </button>
 
               <button class="btn-central destaque">
+
                 Palavra-chave do dia:
+
                 <span id="palavraChaveDia">
                   ---
                 </span>
+
               </button>
 
             </div>
@@ -415,6 +426,53 @@
             </div>
 
           </div>
+
+        </div>
+
+      </section>
+
+      <!-- PROCESSOS ADMINISTRATIVOS -->
+
+      <section id="secao-processos" class="section" style="display:none;">
+
+        <div class="section-header">
+
+          <div>
+            <h1>Processos Administrativos</h1>
+            <p>Acompanhamento de solicitações e cadastros</p>
+          </div>
+
+        </div>
+
+        <div class="table-wrapper">
+
+          <table>
+
+            <thead>
+
+              <tr>
+                <th>Consultor</th>
+                <th>Cooperativa</th>
+                <th>Regional</th>
+                <th>Status</th>
+                <th>Data Solicitação</th>
+                <th>Observação</th>
+                <th>Ações</th>
+              </tr>
+
+            </thead>
+
+            <tbody id="tabelaProcessosBody">
+
+              <tr>
+                <td colspan="7" class="empty-table">
+                  Nenhum processo encontrado.
+                </td>
+              </tr>
+
+            </tbody>
+
+          </table>
 
         </div>
 
@@ -536,6 +594,104 @@
 
         <button type="submit">
           Salvar Cooperativa
+        </button>
+
+      </form>
+
+    </div>
+
+  </div>
+
+  <!-- MODAL CONSULTOR -->
+
+  <div class="modal" id="modalConsultor">
+
+    <div class="modal-content">
+
+      <div class="modal-header">
+
+        <h2 id="tituloModalConsultor">
+          Cadastro de Consultor
+        </h2>
+
+        <button onclick="fecharModal('modalConsultor')">
+          X
+        </button>
+
+      </div>
+
+      <form onsubmit="salvarConsultor(event)">
+
+        <div class="form-grid">
+
+          <input
+            type="text"
+            id="consultorNome"
+            placeholder="Nome do consultor"
+            required
+          />
+
+          <input
+            type="email"
+            id="consultorEmail"
+            placeholder="E-mail"
+            required
+          />
+
+          <input
+            type="text"
+            id="consultorTelefone"
+            placeholder="Telefone"
+            required
+          />
+
+          <select id="consultorCooperativa" required>
+          </select>
+
+          <input
+            type="text"
+            id="consultorRegional"
+            placeholder="Regional responsável"
+            required
+          />
+
+          <textarea
+            id="consultorObservacao"
+            placeholder="Observações / pendências"
+            class="textarea-observacao"
+          ></textarea>
+
+        </div>
+
+        <div class="box-zapsign">
+
+          <p>
+            Contrato padrão ZapSign:
+          </p>
+
+          <div class="zapsign-actions">
+
+            <input
+              type="text"
+              id="linkContratoZap"
+              readonly
+              value="https://app.zapsign.com.br/verificar/doc/4c07c73c-9cbf-4498-89f1-27f95098ac60"
+            />
+
+            <button
+              type="button"
+              class="btn-copiar"
+              onclick="copiarLinkContrato()"
+            >
+              Copiar Link
+            </button>
+
+          </div>
+
+        </div>
+
+        <button type="submit" id="btnSalvarConsultor">
+          Salvar
         </button>
 
       </form>
