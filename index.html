@@ -341,7 +341,7 @@
                 class="btn-central"
                 onclick="abrirModalConsultor()"
               >
-                Cadastro de Consultor
+                Solicitar Cadastro de Consultor
               </button>
 
               <button class="btn-central">
@@ -606,13 +606,19 @@
 
   <div class="modal" id="modalConsultor">
 
-    <div class="modal-content">
+    <div class="modal-content modal-consultor">
 
       <div class="modal-header">
 
-        <h2 id="tituloModalConsultor">
-          Cadastro de Consultor
-        </h2>
+        <div>
+          <h2 id="tituloModalConsultor">
+            Solicitar Cadastro de Consultor
+          </h2>
+
+          <p class="modal-subtitle">
+            Preencha os dados do consultor para análise administrativa.
+          </p>
+        </div>
 
         <button onclick="fecharModal('modalConsultor')">
           X
@@ -657,7 +663,7 @@
 
           <textarea
             id="consultorObservacao"
-            placeholder="Observações / pendências"
+            placeholder="Observações"
             class="textarea-observacao"
           ></textarea>
 
@@ -665,9 +671,10 @@
 
         <div class="box-zapsign">
 
-          <p>
-            Contrato padrão ZapSign:
-          </p>
+          <div>
+            <strong>Contrato padrão ZapSign</strong>
+            <p>Copie o link abaixo e envie para assinatura do consultor.</p>
+          </div>
 
           <div class="zapsign-actions">
 
@@ -691,7 +698,7 @@
         </div>
 
         <button type="submit" id="btnSalvarConsultor">
-          Salvar
+          Enviar solicitação de Cadastro
         </button>
 
       </form>
