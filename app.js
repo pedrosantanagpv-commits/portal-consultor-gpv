@@ -3,6 +3,9 @@ const API_URL = '/api/proxy';
 let usuarioLogado = null;
 let usuariosCache = [];
 let cooperativasCache = [];
+let consultoresCache = [];
+
+const LINK_CONTRATO_ZAPSIGN = 'https://app.zapsign.com.br/verificar/doc/4c07c73c-9cbf-4498-89f1-27f95098ac60';
 
 document.addEventListener('DOMContentLoaded', () => {
   const usuarioSalvo = localStorage.getItem('usuarioLogado');
@@ -27,6 +30,8 @@ function abrirSistema() {
   document.getElementById('usuarioTopo').innerText =
     `${usuarioLogado.nome} | ${usuarioLogado.perfil}`;
 
+  aplicarPermissoesVisuais();
+
   carregarDashboard();
   carregarCooperativas();
   carregarPalavraChave();
@@ -44,6 +49,59 @@ async function apiPost(payload) {
   return await resposta.json();
 }
 
+/* PERMISSÕES */
+
+function aplicarPermissoesVisuais() {
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+
+  const btnCadastroConsultor = document.getElementById('btnCadastroConsultor');
+  const menuProcessos = document.querySelector('[data-aba="processos"]');
+
+  if (btnCadastroConsultor) {
+    if (perfil === 'CONSULTOR') {
+      btnCadastroConsultor.style.display = 'none';
+    } else {
+      btnCadastroConsultor.style.display = 'block';
+
+      if (perfil === 'REGIONAL') {
+        btnCadastroConsultor.innerText = 'Solicitar Cadastro de Consultor';
+      } else {
+        btnCadastroConsultor.innerText = 'Cadastrar Consultor';
+      }
+    }
+  }
+
+  if (menuProcessos) {
+    if (perfil === 'CONSULTOR') {
+      menuProcessos.style.display = 'none';
+    } else {
+      menuProcessos.style.display = 'block';
+    }
+  }
+}
+
+function podeCadastrarOuSolicitarConsultor() {
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+
+  return (
+    perfil === 'SUPER_ADMIN' ||
+    perfil === 'ADMINISTRATIVO' ||
+    perfil === 'REGIONAL'
+  );
+}
+
+function usuarioEhAdmin() {
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+
+  return perfil === 'SUPER_ADMIN' || perfil === 'ADMINISTRATIVO';
+}
+
+function usuarioEhRegional() {
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+
+  return perfil === 'REGIONAL';
+}
+
 /* LOGIN */
 
 async function fazerLogin(event) {
@@ -58,7 +116,6 @@ async function fazerLogin(event) {
   }
 
   try {
-
     const resultado = await apiPost({
       action: 'login',
       email,
@@ -80,10 +137,8 @@ async function fazerLogin(event) {
     abrirSistema();
 
   } catch (erro) {
-
     console.error(erro);
     alert('Erro de comunicação com o servidor.');
-
   }
 }
 
@@ -96,7 +151,6 @@ function sair() {
 /* NAVEGAÇÃO */
 
 function mostrarAba(aba) {
-
   document.querySelectorAll('.section').forEach(secao => {
     secao.style.display = 'none';
   });
@@ -133,14 +187,16 @@ function mostrarAba(aba) {
   if (aba === 'central') {
     carregarPalavraChave();
   }
+
+  if (aba === 'processos') {
+    carregarConsultores();
+  }
 }
 
 /* DASHBOARD */
 
 async function carregarDashboard() {
-
   try {
-
     const resultado = await apiPost({
       action: 'dashboard'
     });
@@ -159,18 +215,14 @@ async function carregarDashboard() {
     setTexto('dashCooperativas', dados.cooperativas || 0);
 
   } catch (erro) {
-
     console.error('Erro dashboard:', erro);
-
   }
 }
 
 /* USUÁRIOS */
 
 async function carregarUsuarios() {
-
   try {
-
     const resultado = await apiPost({
       action: 'listarUsuarios'
     });
@@ -186,15 +238,12 @@ async function carregarUsuarios() {
     atualizarMiniDashboardUsuarios(usuariosCache);
 
   } catch (erro) {
-
     console.error(erro);
     alert('Erro ao carregar usuários.');
-
   }
 }
 
 function renderizarUsuarios(lista) {
-
   const tbody = document.getElementById('tabelaUsuariosBody');
 
   if (!tbody) return;
@@ -202,7 +251,6 @@ function renderizarUsuarios(lista) {
   tbody.innerHTML = '';
 
   if (!lista.length) {
-
     tbody.innerHTML = `
       <tr>
         <td colspan="6" class="empty-table">
@@ -210,12 +258,10 @@ function renderizarUsuarios(lista) {
         </td>
       </tr>
     `;
-
     return;
   }
 
   lista.forEach(usuario => {
-
     const tr = document.createElement('tr');
 
     const statusTexto = String(usuario.status || '').toUpperCase();
@@ -224,9 +270,7 @@ function renderizarUsuarios(lista) {
       ? 'status ativo'
       : 'status inativo';
 
-    const cooperativaTexto = obterNomeCooperativa(
-      usuario.cooperativa_id
-    );
+    const cooperativaTexto = obterNomeCooperativa(usuario.cooperativa_id);
 
     tr.innerHTML = `
       <td>
@@ -271,12 +315,10 @@ function renderizarUsuarios(lista) {
     `;
 
     tbody.appendChild(tr);
-
   });
 }
 
 function atualizarMiniDashboardUsuarios(lista) {
-
   const total = lista.length;
 
   const ativos = lista.filter(u =>
@@ -288,14 +330,12 @@ function atualizarMiniDashboardUsuarios(lista) {
   ).length;
 
   const admins = lista.filter(u => {
-
     const perfil = String(u.perfil || '').toUpperCase();
 
     return (
       perfil === 'SUPER_ADMIN' ||
       perfil === 'ADMINISTRATIVO'
     );
-
   }).length;
 
   const regionais = lista.filter(u =>
@@ -315,7 +355,6 @@ function atualizarMiniDashboardUsuarios(lista) {
 }
 
 function filtrarUsuarios() {
-
   const busca = document.getElementById('buscaUsuario')?.value.toLowerCase() || '';
 
   const filtroStatus =
@@ -327,13 +366,9 @@ function filtrarUsuarios() {
   let lista = [...usuariosCache];
 
   if (busca) {
-
     lista = lista.filter(usuario => {
-
       const nome = String(usuario.nome || '').toLowerCase();
-
       const email = String(usuario.email || '').toLowerCase();
-
       const coopId = String(usuario.cooperativa_id || '').toLowerCase();
 
       const coopNome = String(
@@ -346,24 +381,19 @@ function filtrarUsuarios() {
         coopId.includes(busca) ||
         coopNome.includes(busca)
       );
-
     });
   }
 
   if (filtroStatus) {
-
     lista = lista.filter(usuario =>
       String(usuario.status || '').toUpperCase() === filtroStatus
     );
-
   }
 
   if (filtroPerfil) {
-
     lista = lista.filter(usuario =>
       String(usuario.perfil || '').toUpperCase() === filtroPerfil
     );
-
   }
 
   renderizarUsuarios(lista);
@@ -372,7 +402,6 @@ function filtrarUsuarios() {
 /* MODAL USUÁRIO */
 
 function abrirModalNovoUsuario() {
-
   document.getElementById('modalUsuarioTitulo').innerText =
     'Novo Usuário';
 
@@ -391,7 +420,6 @@ function abrirModalNovoUsuario() {
 }
 
 function abrirModalEditarUsuario(id) {
-
   const usuario = usuariosCache.find(
     u => String(u.id) === String(id)
   );
@@ -433,7 +461,6 @@ function abrirModalEditarUsuario(id) {
 }
 
 async function salvarUsuario(event) {
-
   event.preventDefault();
 
   const id = document.getElementById('usuarioId').value.trim();
@@ -456,7 +483,6 @@ async function salvarUsuario(event) {
   }
 
   try {
-
     const resultado = await apiPost(payload);
 
     if (!resultado.success) {
@@ -472,17 +498,13 @@ async function salvarUsuario(event) {
     carregarDashboard();
 
   } catch (erro) {
-
     console.error(erro);
     alert('Erro ao salvar usuário.');
-
   }
 }
 
 async function alterarStatusUsuario(id) {
-
   try {
-
     const resultado = await apiPost({
       action: 'alterarStatusUsuario',
       id
@@ -497,15 +519,12 @@ async function alterarStatusUsuario(id) {
     carregarDashboard();
 
   } catch (erro) {
-
     console.error(erro);
     alert('Erro ao alterar status.');
-
   }
 }
 
 function confirmarExclusaoUsuario(id, nome) {
-
   const confirmar = confirm(
     `Tem certeza que deseja excluir o usuário "${nome}"?\n\nEssa ação não poderá ser desfeita.`
   );
@@ -516,9 +535,7 @@ function confirmarExclusaoUsuario(id, nome) {
 }
 
 async function excluirUsuario(id) {
-
   try {
-
     const resultado = await apiPost({
       action: 'excluirUsuario',
       id
@@ -535,19 +552,15 @@ async function excluirUsuario(id) {
     carregarDashboard();
 
   } catch (erro) {
-
     console.error(erro);
     alert('Erro ao excluir usuário.');
-
   }
 }
 
 /* COOPERATIVAS */
 
 async function carregarCooperativas() {
-
   try {
-
     const resultado = await apiPost({
       action: 'listarCooperativas'
     });
@@ -561,16 +574,14 @@ async function carregarCooperativas() {
 
     renderizarCooperativas(cooperativasCache);
     preencherSelectCooperativas();
+    preencherSelectConsultorCooperativas();
 
   } catch (erro) {
-
     console.error('Erro cooperativas:', erro);
-
   }
 }
 
 function renderizarCooperativas(lista) {
-
   const tbody = document.getElementById('tabelaCooperativasBody');
 
   if (!tbody) return;
@@ -578,7 +589,6 @@ function renderizarCooperativas(lista) {
   tbody.innerHTML = '';
 
   if (!lista.length) {
-
     tbody.innerHTML = `
       <tr>
         <td colspan="5" class="empty-table">
@@ -586,12 +596,10 @@ function renderizarCooperativas(lista) {
         </td>
       </tr>
     `;
-
     return;
   }
 
   lista.forEach(coop => {
-
     const tr = document.createElement('tr');
 
     const statusTexto =
@@ -624,12 +632,10 @@ function renderizarCooperativas(lista) {
     `;
 
     tbody.appendChild(tr);
-
   });
 }
 
 function abrirModalNovaCooperativa() {
-
   document.getElementById('coopNome').value = '';
   document.getElementById('coopRegional').value = '';
   document.getElementById('coopCidade').value = '';
@@ -639,7 +645,6 @@ function abrirModalNovaCooperativa() {
 }
 
 async function salvarCooperativa(event) {
-
   event.preventDefault();
 
   const payload = {
@@ -655,14 +660,11 @@ async function salvarCooperativa(event) {
     !payload.regional_responsavel ||
     !payload.cidade
   ) {
-    alert(
-      'Preencha nome da cooperativa, regional responsável e cidade.'
-    );
+    alert('Preencha nome da cooperativa, regional responsável e cidade.');
     return;
   }
 
   try {
-
     const resultado = await apiPost(payload);
 
     if (!resultado.success) {
@@ -678,15 +680,12 @@ async function salvarCooperativa(event) {
     carregarDashboard();
 
   } catch (erro) {
-
     console.error(erro);
     alert('Erro ao salvar cooperativa.');
-
   }
 }
 
 function preencherSelectCooperativas(valorSelecionado = '') {
-
   const select = document.getElementById('usuarioCooperativa');
 
   if (!select) return;
@@ -695,7 +694,6 @@ function preencherSelectCooperativas(valorSelecionado = '') {
     '<option value="">Selecione uma cooperativa</option>';
 
   cooperativasCache.forEach(coop => {
-
     const option = document.createElement('option');
 
     option.value = coop.id;
@@ -708,12 +706,43 @@ function preencherSelectCooperativas(valorSelecionado = '') {
     }
 
     select.appendChild(option);
+  });
+}
 
+function preencherSelectConsultorCooperativas(valorSelecionado = '') {
+  const select = document.getElementById('consultorCooperativa');
+
+  if (!select) return;
+
+  select.innerHTML =
+    '<option value="">Selecione a cooperativa</option>';
+
+  let lista = [...cooperativasCache];
+
+  if (usuarioEhRegional()) {
+    const coopUsuario = String(usuarioLogado?.cooperativa_id || '').trim();
+
+    lista = lista.filter(coop =>
+      String(coop.id) === coopUsuario ||
+      String(coop.nome_cooperativa || '').toLowerCase() === coopUsuario.toLowerCase()
+    );
+  }
+
+  lista.forEach(coop => {
+    const option = document.createElement('option');
+
+    option.value = coop.id;
+    option.textContent = coop.nome_cooperativa || coop.nome || coop.id;
+
+    if (String(coop.id) === String(valorSelecionado)) {
+      option.selected = true;
+    }
+
+    select.appendChild(option);
   });
 }
 
 function obterNomeCooperativa(cooperativaId) {
-
   if (!cooperativaId) return '-';
 
   const valor = String(cooperativaId).trim();
@@ -738,9 +767,7 @@ function obterNomeCooperativa(cooperativaId) {
 /* CENTRAL DO CONSULTOR */
 
 async function carregarPalavraChave() {
-
   try {
-
     const resultado = await apiPost({
       action: 'buscarPalavraChave'
     });
@@ -755,16 +782,269 @@ async function carregarPalavraChave() {
     );
 
   } catch (erro) {
-
     console.error('Erro palavra-chave:', erro);
+  }
+}
 
+function abrirModalConsultor() {
+  if (!podeCadastrarOuSolicitarConsultor()) {
+    alert('Você não tem permissão para realizar essa ação.');
+    return;
+  }
+
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+
+  const titulo = document.getElementById('tituloModalConsultor');
+  const botao = document.getElementById('btnSalvarConsultor');
+
+  if (perfil === 'REGIONAL') {
+    titulo.innerText = 'Solicitar Cadastro de Consultor';
+    botao.innerText = 'Enviar Solicitação';
+  } else {
+    titulo.innerText = 'Cadastrar Consultor';
+    botao.innerText = 'Cadastrar Consultor';
+  }
+
+  document.getElementById('consultorNome').value = '';
+  document.getElementById('consultorEmail').value = '';
+  document.getElementById('consultorTelefone').value = '';
+  document.getElementById('consultorObservacao').value = '';
+
+  document.getElementById('linkContratoZap').value = LINK_CONTRATO_ZAPSIGN;
+
+  preencherSelectConsultorCooperativas();
+
+  const campoRegional = document.getElementById('consultorRegional');
+
+  if (usuarioEhRegional()) {
+    campoRegional.value = usuarioLogado.nome || '';
+    campoRegional.readOnly = true;
+  } else {
+    campoRegional.value = '';
+    campoRegional.readOnly = false;
+  }
+
+  abrirModal('modalConsultor');
+}
+
+async function salvarConsultor(event) {
+  event.preventDefault();
+
+  if (!podeCadastrarOuSolicitarConsultor()) {
+    alert('Você não tem permissão para realizar essa ação.');
+    return;
+  }
+
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+
+  const statusInicial = perfil === 'REGIONAL'
+    ? 'PENDENTE'
+    : 'CADASTRO REALIZADO';
+
+  const payload = {
+    action: 'salvarConsultor',
+    solicitante_id: usuarioLogado?.id || '',
+    solicitante_nome: usuarioLogado?.nome || '',
+    solicitante_perfil: usuarioLogado?.perfil || '',
+    nome: document.getElementById('consultorNome').value.trim(),
+    email: document.getElementById('consultorEmail').value.trim(),
+    telefone: document.getElementById('consultorTelefone').value.trim(),
+    cooperativa_id: document.getElementById('consultorCooperativa').value,
+    regional: document.getElementById('consultorRegional').value.trim(),
+    status: statusInicial,
+    observacao: document.getElementById('consultorObservacao').value.trim()
+  };
+
+  if (
+    !payload.nome ||
+    !payload.email ||
+    !payload.telefone ||
+    !payload.cooperativa_id ||
+    !payload.regional
+  ) {
+    alert('Preencha todos os campos obrigatórios.');
+    return;
+  }
+
+  try {
+    const resultado = await apiPost(payload);
+
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao salvar processo.');
+      return;
+    }
+
+    alert(resultado.message || 'Processo salvo com sucesso.');
+
+    fecharModal('modalConsultor');
+
+    carregarConsultores();
+
+  } catch (erro) {
+    console.error(erro);
+    alert('Erro ao salvar processo.');
+  }
+}
+
+function copiarLinkContrato() {
+  const input = document.getElementById('linkContratoZap');
+
+  if (!input) return;
+
+  input.select();
+  input.setSelectionRange(0, 99999);
+
+  navigator.clipboard.writeText(input.value)
+    .then(() => {
+      alert('Link do contrato copiado!');
+    })
+    .catch(() => {
+      document.execCommand('copy');
+      alert('Link do contrato copiado!');
+    });
+}
+
+/* PROCESSOS ADMINISTRATIVOS */
+
+async function carregarConsultores() {
+  try {
+    const resultado = await apiPost({
+      action: 'listarConsultores',
+      usuario_id: usuarioLogado?.id || '',
+      perfil: usuarioLogado?.perfil || '',
+      cooperativa_id: usuarioLogado?.cooperativa_id || ''
+    });
+
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao carregar processos.');
+      return;
+    }
+
+    consultoresCache = resultado.consultores || [];
+
+    renderizarProcessos(consultoresCache);
+
+  } catch (erro) {
+    console.error(erro);
+    alert('Erro ao carregar processos administrativos.');
+  }
+}
+
+function renderizarProcessos(lista) {
+  const tbody = document.getElementById('tabelaProcessosBody');
+
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  if (!lista.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" class="empty-table">
+          Nenhum processo encontrado.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  lista.forEach(processo => {
+    const tr = document.createElement('tr');
+
+    const statusTexto = String(processo.status || '').toUpperCase();
+
+    let statusClass = 'status pendente';
+
+    if (statusTexto === 'CADASTRO REALIZADO') {
+      statusClass = 'status ativo';
+    }
+
+    if (statusTexto === 'RECUSADO') {
+      statusClass = 'status inativo';
+    }
+
+    const acoes = usuarioEhAdmin()
+      ? `
+        <button onclick="atualizarStatusProcesso('${processo.id}', 'CADASTRO REALIZADO')">
+          Concluir
+        </button>
+
+        <button onclick="atualizarStatusProcesso('${processo.id}', 'PENDENTE')">
+          Pendente
+        </button>
+
+        <button class="danger" onclick="atualizarStatusProcesso('${processo.id}', 'RECUSADO')">
+          Recusar
+        </button>
+      `
+      : `
+        <button disabled>
+          Acompanhar
+        </button>
+      `;
+
+    tr.innerHTML = `
+      <td>
+        <strong>${processo.nome || '-'}</strong>
+        <small>${processo.email || '-'}</small>
+        <small>${processo.telefone || '-'}</small>
+      </td>
+
+      <td>${obterNomeCooperativa(processo.cooperativa_id) || '-'}</td>
+
+      <td>${processo.regional || '-'}</td>
+
+      <td>
+        <span class="${statusClass}">
+          ${processo.status || '-'}
+        </span>
+      </td>
+
+      <td>${formatarData(processo.data_solicitacao)}</td>
+
+      <td>${processo.observacao || '-'}</td>
+
+      <td class="acoes">
+        ${acoes}
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+async function atualizarStatusProcesso(id, status) {
+  const observacao = prompt(
+    `Observação para o status "${status}" (opcional):`
+  );
+
+  try {
+    const resultado = await apiPost({
+      action: 'atualizarStatusConsultor',
+      id,
+      status,
+      observacao: observacao || '',
+      atualizado_por: usuarioLogado?.nome || ''
+    });
+
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao atualizar processo.');
+      return;
+    }
+
+    alert(resultado.message || 'Processo atualizado com sucesso.');
+
+    carregarConsultores();
+
+  } catch (erro) {
+    console.error(erro);
+    alert('Erro ao atualizar processo.');
   }
 }
 
 /* MODAIS */
 
 function abrirModal(id) {
-
   const modal = document.getElementById(id);
 
   if (modal) {
@@ -773,7 +1053,6 @@ function abrirModal(id) {
 }
 
 function fecharModal(id) {
-
   const modal = document.getElementById(id);
 
   if (modal) {
@@ -784,10 +1063,26 @@ function fecharModal(id) {
 /* AUXILIARES */
 
 function setTexto(id, valor) {
-
   const el = document.getElementById(id);
 
   if (el) {
     el.innerText = valor;
+  }
+}
+
+function formatarData(valor) {
+  if (!valor) return '-';
+
+  try {
+    const data = new Date(valor);
+
+    if (isNaN(data.getTime())) {
+      return valor;
+    }
+
+    return data.toLocaleString('pt-BR');
+
+  } catch (erro) {
+    return valor;
   }
 }
