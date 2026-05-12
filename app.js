@@ -636,3 +636,30 @@ async function carregarCooperativasEdicao(cooperativaSelecionada) {
     console.log(erro);
   }
 }
+/* EXCLUIR USUÁRIO */
+
+async function confirmarExclusao(id, nome) {
+  const confirmou = confirm(`⚠️ ATENÇÃO: Você deseja excluir permanentemente o usuário ${nome}?\n\nEsta ação removerá os dados diretamente da planilha e não pode ser desfeita.`);
+  
+  if (confirmou) {
+    try {
+      const dados = await apiPost({ 
+        acao: "excluirUsuario", 
+        id: id 
+      });
+
+      if (dados.status === "success") {
+        alert(dados.message);
+        // Recarrega a lista para o card sumir da tela
+        carregarUsuarios(); 
+        // Atualiza os números do dashboard, caso o usuário excluído mude as métricas
+        carregarDashboardAdmin(); 
+      } else {
+        alert("Erro: " + dados.message);
+      }
+    } catch (erro) {
+      console.error("Erro ao excluir:", erro);
+      alert("Não foi possível conectar ao servidor para realizar a exclusão.");
+    }
+  }
+}
