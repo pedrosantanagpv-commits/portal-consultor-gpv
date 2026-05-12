@@ -307,7 +307,9 @@ async function carregarUsuarios() {
             )'>
               Editar
             </button>
-
+<button onclick="confirmarExclusao('${usuario.id}', '${usuario.nome}')" class="btn-perigo">
+    Excluir
+</button>
             ${
               usuario.status === "ATIVO"
               ? `<button class="btn-secundario" onclick="alterarStatus('${usuario.id}', 'INATIVO')">Inativar</button>`
