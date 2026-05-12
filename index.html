@@ -22,19 +22,9 @@
 
       <h1>Portal Consultor</h1>
 
-      <input
-        type="email"
-        id="loginEmail"
-        placeholder="E-mail"
-        required
-      />
+      <input type="email" id="loginEmail" placeholder="E-mail" required />
 
-      <input
-        type="password"
-        id="loginSenha"
-        placeholder="Senha"
-        required
-      />
+      <input type="password" id="loginSenha" placeholder="Senha" required />
 
       <button type="submit">
         Entrar
@@ -60,27 +50,15 @@
 
         <nav class="menu">
 
-          <button
-            class="menu-item active"
-            data-aba="inicio"
-            onclick="mostrarAba('inicio')"
-          >
+          <button class="menu-item active" data-aba="inicio" onclick="mostrarAba('inicio')">
             Início
           </button>
 
-          <button
-            class="menu-item"
-            data-aba="usuarios"
-            onclick="mostrarAba('usuarios')"
-          >
+          <button class="menu-item" data-aba="usuarios" onclick="mostrarAba('usuarios')">
             Usuários
           </button>
 
-          <button
-            class="menu-item"
-            data-aba="cooperativas"
-            onclick="mostrarAba('cooperativas')"
-          >
+          <button class="menu-item" data-aba="cooperativas" onclick="mostrarAba('cooperativas')">
             Cooperativas
           </button>
 
@@ -110,10 +88,7 @@
 
       <!-- DASHBOARD -->
 
-      <section
-        id="secao-inicio"
-        class="section"
-      >
+      <section id="secao-inicio" class="section">
 
         <div class="section-header">
 
@@ -157,11 +132,7 @@
 
       <!-- USUÁRIOS -->
 
-      <section
-        id="secao-usuarios"
-        class="section"
-        style="display:none;"
-      >
+      <section id="secao-usuarios" class="section" style="display:none;">
 
         <div class="section-header">
 
@@ -175,8 +146,6 @@
           </button>
 
         </div>
-
-        <!-- MINI DASH -->
 
         <div class="mini-dashboard">
 
@@ -212,8 +181,6 @@
 
         </div>
 
-        <!-- FILTROS -->
-
         <div class="filtros">
 
           <input
@@ -223,19 +190,13 @@
             onkeyup="filtrarUsuarios()"
           />
 
-          <select
-            id="filtroStatusUsuario"
-            onchange="filtrarUsuarios()"
-          >
+          <select id="filtroStatusUsuario" onchange="filtrarUsuarios()">
             <option value="">Todos Status</option>
             <option value="ATIVO">Ativo</option>
             <option value="INATIVO">Inativo</option>
           </select>
 
-          <select
-            id="filtroPerfilUsuario"
-            onchange="filtrarUsuarios()"
-          >
+          <select id="filtroPerfilUsuario" onchange="filtrarUsuarios()">
             <option value="">Todos Perfis</option>
             <option value="SUPER_ADMIN">Super Admin</option>
             <option value="ADMINISTRATIVO">Administrativo</option>
@@ -249,14 +210,11 @@
 
         </div>
 
-        <!-- TABELA -->
-
         <div class="table-wrapper">
 
           <table>
 
             <thead>
-
               <tr>
                 <th>Nome</th>
                 <th>E-mail</th>
@@ -265,7 +223,6 @@
                 <th>Status</th>
                 <th>Ações</th>
               </tr>
-
             </thead>
 
             <tbody id="tabelaUsuariosBody"></tbody>
@@ -278,11 +235,7 @@
 
       <!-- COOPERATIVAS -->
 
-      <section
-        id="secao-cooperativas"
-        class="section"
-        style="display:none;"
-      >
+      <section id="secao-cooperativas" class="section" style="display:none;">
 
         <div class="section-header">
 
@@ -302,14 +255,13 @@
           <table>
 
             <thead>
-
               <tr>
                 <th>Nome</th>
-                <th>Código</th>
+                <th>Regional Responsável</th>
+                <th>Cidade</th>
                 <th>Status</th>
                 <th>Ações</th>
               </tr>
-
             </thead>
 
             <tbody id="tabelaCooperativasBody"></tbody>
@@ -326,10 +278,7 @@
 
   <!-- MODAL USUÁRIO -->
 
-  <div
-    class="modal"
-    id="modalUsuario"
-  >
+  <div class="modal" id="modalUsuario">
 
     <div class="modal-content">
 
@@ -351,58 +300,30 @@
 
         <div class="form-grid">
 
-          <input
-            type="text"
-            id="usuarioNome"
-            placeholder="Nome"
-            required
-          />
+          <input type="text" id="usuarioNome" placeholder="Nome" required />
 
-          <input
-            type="email"
-            id="usuarioEmail"
-            placeholder="E-mail"
-            required
-          />
+          <input type="email" id="usuarioEmail" placeholder="E-mail" required />
 
-          <input
-            type="password"
-            id="usuarioSenha"
-            placeholder="Senha"
-          />
+          <input type="password" id="usuarioSenha" placeholder="Senha" />
 
           <select id="usuarioPerfil">
-
-            <option value="SUPER_ADMIN">
-              Super Admin
-            </option>
-
-            <option value="ADMINISTRATIVO">
-              Administrativo
-            </option>
-
-            <option value="REGIONAL">
-              Regional
-            </option>
-
-            <option value="CONSULTOR">
-              Consultor
-            </option>
-
+            <option value="SUPER_ADMIN">Super Admin</option>
+            <option value="ADMINISTRATIVO">Administrativo</option>
+            <option value="REGIONAL">Regional</option>
+            <option value="CONSULTOR">Consultor</option>
           </select>
 
           <select id="usuarioCooperativa"></select>
 
+          <input
+            type="text"
+            id="usuarioPermissoes"
+            placeholder="Permissões"
+          />
+
           <select id="usuarioStatus">
-
-            <option value="ATIVO">
-              Ativo
-            </option>
-
-            <option value="INATIVO">
-              Inativo
-            </option>
-
+            <option value="ATIVO">Ativo</option>
+            <option value="INATIVO">Inativo</option>
           </select>
 
         </div>
@@ -419,10 +340,7 @@
 
   <!-- MODAL COOPERATIVA -->
 
-  <div
-    class="modal"
-    id="modalCooperativa"
-  >
+  <div class="modal" id="modalCooperativa">
 
     <div class="modal-content">
 
@@ -443,27 +361,27 @@
           <input
             type="text"
             id="coopNome"
-            placeholder="Nome"
+            placeholder="Nome da cooperativa"
             required
           />
 
           <input
             type="text"
-            id="coopCodigo"
-            placeholder="Código"
+            id="coopRegional"
+            placeholder="Regional responsável"
+            required
+          />
+
+          <input
+            type="text"
+            id="coopCidade"
+            placeholder="Cidade"
             required
           />
 
           <select id="coopStatus">
-
-            <option value="ATIVO">
-              Ativo
-            </option>
-
-            <option value="INATIVO">
-              Inativo
-            </option>
-
+            <option value="ATIVA">Ativa</option>
+            <option value="INATIVA">Inativa</option>
           </select>
 
         </div>
