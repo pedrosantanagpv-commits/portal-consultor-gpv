@@ -115,7 +115,6 @@ function abrirPagina(pagina) {
     telaCooperativas();
   }
 
-  // IMPLEMENTAÇÃO BASEADA NA IMAGEM "Idéias de acréscimo ao projeto..png"
   if (pagina === "conteudos") {
     conteudo.innerHTML = `
       <h1>Central do Consultor</h1>
@@ -134,38 +133,47 @@ function abrirPagina(pagina) {
           <div class="card" style="min-height: 250px; border: 2px solid #f1c40f;">
             <h3 style="color: #f1c40f;">📚 MATERIAL DE APOIO AO CONSULTOR</h3>
             <div style="margin-top: 15px;">
-              <p style="font-size: 0.9rem; margin-bottom: 10px;">Orientações de procedimentos realizados constantemente:</p>
+              <p style="font-size: 0.9rem; margin-bottom: 10px;">Orientações de procedimentos:</p>
               <ul style="list-style: none; padding: 0;">
-                <li style="padding: 8px 0; border-bottom: 1px solid #333;">📄 <a href="#" style="color: #fff; text-decoration: none;">Manual de Procedimento X</a></li>
-                <li style="padding: 8px 0; border-bottom: 1px solid #333;">📄 <a href="#" style="color: #fff; text-decoration: none;">Guia de Orientação Y</a></li>
-                <li style="padding: 8px 0;">📄 <a href="#" style="color: #fff; text-decoration: none;">Checklist de Atendimento</a></li>
+                <li style="padding: 8px 0; border-bottom: 1px solid #333;">📄 <a href="#" style="color: #fff; text-decoration: none;">Guia do Consultor</a></li>
+                <li style="padding: 8px 0; border-bottom: 1px solid #333;">📄 <a href="#" style="color: #fff; text-decoration: none;">Links importantes e Aplicações utilizadas</a></li>
+                <li style="padding: 8px 0;">📄 <a href="#" style="color: #fff; text-decoration: none;">Cadastrar Consultor</a></li>
               </ul>
             </div>
           </div>
 
         </div>
 
-        <!-- Linha Inferior: Contatos -->
+        <!-- Linha Inferior: Contatos Atualizada conforme image_9c635f.png -->
         <div class="card" style="border: 2px solid #e74c3c;">
           <h3 style="color: #e74c3c; text-align: center; margin-bottom: 20px;">📞 CONTATOS IMPORTANTES E SUPORTE</h3>
-          <div style="display: flex; flex-wrap: wrap; justify-content: space-around; align-items: center; gap: 20px;">
+          <div style="display: grid; grid-template-columns: 1fr 1.5fr 1fr; align-items: center; gap: 20px;">
+            
+            <!-- Esquerda: Assistência 24h -->
             <div style="text-align: center;">
-              <p><strong>NÚMEROS PRINCIPAIS</strong></p>
-              <p>0800 000 0000 (Sede)</p>
-              <p>(81) 3333-3333 (Plantão)</p>
+              <p><strong>ASSISTÊNCIA 24H</strong></p>
+              <p>0800 111 1414</p>
+              <p>0800 591 8357</p>
+              <p>📱 (81) 9424-5276 (WhatsApp)</p>
             </div>
             
-            <div style="text-align: center;">
-              <a href="https://wa.me/5581999999999" target="_blank" 
-                 style="background: #25d366; color: white; padding: 12px 25px; border-radius: 50px; text-decoration: none; font-weight: bold; display: inline-block;">
-                 💬 WHATSAPP SUPORTE
+            <!-- Meio: Botões de WhatsApp Lado a Lado -->
+            <div style="display: flex; gap: 10px; justify-content: center;">
+              <a href="https://wa.me/5581991223928" target="_blank" 
+                 style="background: #25d366; color: white; padding: 12px 15px; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 0.85rem; text-align: center;">
+                 💬 CENTRAL DO CONSULTOR
+              </a>
+              <a href="https://wa.me/5581998657992" target="_blank" 
+                 style="background: #25d366; color: white; padding: 12px 15px; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 0.85rem; text-align: center;">
+                 💬 CENTRAL DO ASSOCIADO
               </a>
             </div>
 
+            <!-- Direita: Espaço vazio (E-mail removido) -->
             <div style="text-align: center;">
-              <p><strong>E-MAIL OFICIAL</strong></p>
-              <p>suporte@gpv.com.br</p>
+              <!-- E-mail removido conforme solicitado -->
             </div>
+
           </div>
         </div>
       </div>
