@@ -55,3 +55,34 @@ input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #333;
 .login-box button { width: 100%; padding: 12px; background: #ffd000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
 @media (max-width: 900px) { .row-graficos { grid-template-columns: 1fr; } }
+/* Ajuste para o formulário de login centralizado */
+#telaLogin {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    text-align: center;
+}
+
+.login-box {
+    background: #1a1a1a;
+    padding: 40px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 350px;
+    border: 1px solid #333;
+}
+
+.login-box input {
+    display: block;
+    width: 100%;
+    margin-bottom: 15px;
+    padding: 12px;
+    background: #000;
+    border: 1px solid #444;
+    color: #fff;
+    border-radius: 6px;
+}
+
+#resultado { margin-top: 10px; color: #ff4444; font-size: 0.9rem; }
