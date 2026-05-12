@@ -1,58 +1,52 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Portal Consultor</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Consultor</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-  <div class="login" id="telaLogin">
-    <div class="box">
-      <h2>Portal Consultor</h2>
-
-      <input type="email" id="email" placeholder="Email">
-      <input type="password" id="senha" placeholder="Senha">
-
-      <button onclick="login()">Entrar</button>
-
-      <div id="resultado"></div>
-    </div>
-  </div>
-
-  <div class="painel" id="painel">
-
-    <div class="topo">
-      <strong>Portal Consultor</strong>
-      <span><span id="usuarioNome"></span> | <span id="usuarioPerfil"></span></span>
+    <!-- TELA DE LOGIN -->
+    <div id="telaLogin">
+        <div class="login-box">
+            <h1>Portal Consultor</h1>
+            <input type="email" id="email" placeholder="E-mail">
+            <input type="password" id="senha" placeholder="Senha">
+            <button onclick="login()">Entrar</button>
+            <div id="resultado"></div>
+        </div>
     </div>
 
-    <div class="layout">
-
-      <div class="menu">
-        <button onclick="abrirPagina('inicio')">Início</button>
-
-        <div id="menuAdmin">
-          <button onclick="abrirPagina('usuarios')">Usuários</button>
-          <button onclick="abrirPagina('cooperativas')">Cooperativas</button>
+    <!-- PAINEL PRINCIPAL (INICIALMENTE OCULTO) -->
+    <div id="painel" style="display: none;">
+        <div class="topo">
+            <div class="logo">Portal Consultor</div>
+            <div class="user-info">
+                <span id="usuarioNome"></span> | <small id="usuarioPerfil"></small>
+            </div>
         </div>
 
-        <button onclick="abrirPagina('conteudos')">Conteúdos</button>
-        <button onclick="logout()">Sair</button>
-      </div>
+        <div class="layout">
+            <div class="menu">
+                <button onclick="abrirPagina('inicio')">Início</button>
+                <div id="menuAdmin" style="display: none;">
+                    <button onclick="abrirPagina('usuarios')">Usuários</button>
+                    <button onclick="abrirPagina('cooperativas')">Cooperativas</button>
+                </div>
+                <button onclick="abrirPagina('conteudos')">Conteúdos</button>
+                <button onclick="logout()">Sair</button>
+            </div>
 
-      <div class="conteudo" id="conteudo">
-        <h1>Bem-vindo ao Portal</h1>
-      </div>
-
+            <div class="conteudo" id="conteudo">
+                <!-- Conteúdo dinâmico entra aqui -->
+            </div>
+        </div>
     </div>
-  </div>
 
- <!-- 1. Primeiro a biblioteca de gráficos (CDN) -->
+    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- 2. Depois o SEU arquivo de lógica -->
     <script src="app.js"></script>
 </body>
 </html>
