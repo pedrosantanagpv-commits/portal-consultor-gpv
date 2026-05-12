@@ -1,8 +1,3 @@
-
-/* =========================
-   RESET / BASE
-========================= */
-
 *{
   margin:0;
   padding:0;
@@ -40,7 +35,7 @@ button{
   border-radius:8px;
   font-weight:bold;
   cursor:pointer;
-  margin-top:6px;
+  margin-bottom:10px;
 }
 
 button:hover{
@@ -52,12 +47,8 @@ button:hover{
   color:white;
 }
 
-/* =========================
-   LOGIN
-========================= */
-
 .login{
-  height:100vh;
+  min-height:100vh;
   display:flex;
   justify-content:center;
   align-items:center;
@@ -65,7 +56,7 @@ button:hover{
 
 .box{
   width:320px;
-  background:#1b1b1b;
+  background:#1a1a1a;
   padding:30px;
   border-radius:12px;
 }
@@ -73,13 +64,9 @@ button:hover{
 #resultado,
 #retornoCadastro,
 #retornoCooperativa{
-  margin-top:15px;
-  color:#ff7070;
+  margin-top:10px;
+  color:#ff5252;
 }
-
-/* =========================
-   LAYOUT DO PAINEL
-========================= */
 
 .painel{
   display:none;
@@ -87,54 +74,46 @@ button:hover{
 
 .topo{
   height:70px;
-  background:#1b1b1b;
+  background:#1a1a1a;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:0 30px;
+  padding:0 20px;
+}
+
+.layout{
+  display:flex;
+  min-height:calc(100vh - 70px);
 }
 
 .menu{
   width:240px;
-  height:calc(100vh - 70px);
   background:#181818;
-  position:fixed;
-  left:0;
-  top:70px;
-  padding:20px;
-}
-
-.menu button{
-  margin-bottom:10px;
+  padding:20px 10px;
 }
 
 .conteudo{
-  margin-left:240px;
+  flex:1;
   padding:30px;
 }
 
 .card{
-  background:#1b1b1b;
+  background:#1a1a1a;
   padding:20px;
   border-radius:12px;
-  margin-top:20px;
+  margin-bottom:20px;
 }
 
 .submenu{
-  display:flex;
+  display:grid;
+  grid-template-columns:1fr 1fr;
   gap:10px;
-}
-
-.submenu button{
-  flex:1;
+  margin-bottom:20px;
 }
 
 .area-interna{
   margin-top:20px;
 }
-/* =========================
-   DASHBOARD
-========================= */
 
 .grid-dashboard{
   display:grid;
@@ -160,9 +139,6 @@ button:hover{
   font-size:16px;
   color:#ccc;
 }
-/* =========================
-   MODAL EDITAR
-========================= */
 
 #modalEditar{
   position:fixed;
