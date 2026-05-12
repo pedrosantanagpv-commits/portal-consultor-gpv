@@ -163,7 +163,7 @@ function abrirPagina(pagina) {
                  style="background: #25d366; color: white; padding: 12px 15px; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 0.85rem; text-align: center;">
                  💬 CENTRAL DO CONSULTOR
               </a>
-              <a href="https://wa.me/5581998657992" target="_blank" 
+              <a href="https://wa.me/5581973402195" target="_blank" 
                  style="background: #25d366; color: white; padding: 12px 15px; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 0.85rem; text-align: center;">
                  💬 CENTRAL DO ASSOCIADO
               </a>
