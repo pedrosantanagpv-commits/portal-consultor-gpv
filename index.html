@@ -1,52 +1,485 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Consultor</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Portal Consultor</title>
+
+  <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
-    <!-- TELA DE LOGIN -->
-    <div id="telaLogin">
-        <div class="login-box">
-            <h1>Portal Consultor</h1>
-            <input type="email" id="email" placeholder="E-mail">
-            <input type="password" id="senha" placeholder="Senha">
-            <button onclick="login()">Entrar</button>
-            <div id="resultado"></div>
+  <!-- LOGIN -->
+
+  <div id="loginPage" class="login-page">
+
+    <form class="login-box" onsubmit="fazerLogin(event)">
+
+      <img src="logo.png" class="logo-login" alt="Logo GPV" />
+
+      <h1>Portal Consultor</h1>
+
+      <input
+        type="email"
+        id="loginEmail"
+        placeholder="E-mail"
+        required
+      />
+
+      <input
+        type="password"
+        id="loginSenha"
+        placeholder="Senha"
+        required
+      />
+
+      <button type="submit">
+        Entrar
+      </button>
+
+    </form>
+
+  </div>
+
+  <!-- APP -->
+
+  <div id="appPage" class="app-layout" style="display:none;">
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+      <div>
+
+        <div class="sidebar-logo">
+          <img src="logo.png" alt="Logo" />
         </div>
+
+        <nav class="menu">
+
+          <button
+            class="menu-item active"
+            data-aba="inicio"
+            onclick="mostrarAba('inicio')"
+          >
+            Início
+          </button>
+
+          <button
+            class="menu-item"
+            data-aba="usuarios"
+            onclick="mostrarAba('usuarios')"
+          >
+            Usuários
+          </button>
+
+          <button
+            class="menu-item"
+            data-aba="cooperativas"
+            onclick="mostrarAba('cooperativas')"
+          >
+            Cooperativas
+          </button>
+
+        </nav>
+
+      </div>
+
+      <button class="btn-sair" onclick="sair()">
+        Sair
+      </button>
+
+    </aside>
+
+    <!-- MAIN -->
+
+    <main class="main-content">
+
+      <!-- TOPO -->
+
+      <header class="topbar">
+
+        <h2 id="usuarioTopo">
+          Usuário
+        </h2>
+
+      </header>
+
+      <!-- DASHBOARD -->
+
+      <section
+        id="secao-inicio"
+        class="section"
+      >
+
+        <div class="section-header">
+
+          <div>
+            <h1>Painel Administrativo</h1>
+            <p>Visão geral do sistema</p>
+          </div>
+
+        </div>
+
+        <div class="dashboard-grid">
+
+          <div class="card-dashboard">
+            <span id="dashUsuarios">0</span>
+            <small>Usuários</small>
+          </div>
+
+          <div class="card-dashboard">
+            <span id="dashAtivos">0</span>
+            <small>Usuários Ativos</small>
+          </div>
+
+          <div class="card-dashboard">
+            <span id="dashConsultores">0</span>
+            <small>Consultores</small>
+          </div>
+
+          <div class="card-dashboard">
+            <span id="dashRegionais">0</span>
+            <small>Regionais</small>
+          </div>
+
+          <div class="card-dashboard">
+            <span id="dashCooperativas">0</span>
+            <small>Cooperativas</small>
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- USUÁRIOS -->
+
+      <section
+        id="secao-usuarios"
+        class="section"
+        style="display:none;"
+      >
+
+        <div class="section-header">
+
+          <div>
+            <h1>Usuários</h1>
+            <p>Gerenciamento completo de usuários</p>
+          </div>
+
+          <button onclick="abrirModalNovoUsuario()">
+            Novo Usuário
+          </button>
+
+        </div>
+
+        <!-- MINI DASH -->
+
+        <div class="mini-dashboard">
+
+          <div class="mini-card">
+            <span id="miniTotalUsuarios">0</span>
+            <small>Total</small>
+          </div>
+
+          <div class="mini-card">
+            <span id="miniUsuariosAtivos">0</span>
+            <small>Ativos</small>
+          </div>
+
+          <div class="mini-card">
+            <span id="miniUsuariosInativos">0</span>
+            <small>Inativos</small>
+          </div>
+
+          <div class="mini-card">
+            <span id="miniAdmins">0</span>
+            <small>Admins</small>
+          </div>
+
+          <div class="mini-card">
+            <span id="miniRegionais">0</span>
+            <small>Regionais</small>
+          </div>
+
+          <div class="mini-card">
+            <span id="miniConsultores">0</span>
+            <small>Consultores</small>
+          </div>
+
+        </div>
+
+        <!-- FILTROS -->
+
+        <div class="filtros">
+
+          <input
+            type="text"
+            id="buscaUsuario"
+            placeholder="Buscar usuário..."
+            onkeyup="filtrarUsuarios()"
+          />
+
+          <select
+            id="filtroStatusUsuario"
+            onchange="filtrarUsuarios()"
+          >
+            <option value="">Todos Status</option>
+            <option value="ATIVO">Ativo</option>
+            <option value="INATIVO">Inativo</option>
+          </select>
+
+          <select
+            id="filtroPerfilUsuario"
+            onchange="filtrarUsuarios()"
+          >
+            <option value="">Todos Perfis</option>
+            <option value="SUPER_ADMIN">Super Admin</option>
+            <option value="ADMINISTRATIVO">Administrativo</option>
+            <option value="REGIONAL">Regional</option>
+            <option value="CONSULTOR">Consultor</option>
+          </select>
+
+          <button onclick="carregarUsuarios()">
+            Atualizar Lista
+          </button>
+
+        </div>
+
+        <!-- TABELA -->
+
+        <div class="table-wrapper">
+
+          <table>
+
+            <thead>
+
+              <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Perfil</th>
+                <th>Cooperativa</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+
+            </thead>
+
+            <tbody id="tabelaUsuariosBody"></tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+      <!-- COOPERATIVAS -->
+
+      <section
+        id="secao-cooperativas"
+        class="section"
+        style="display:none;"
+      >
+
+        <div class="section-header">
+
+          <div>
+            <h1>Cooperativas</h1>
+            <p>Gerenciamento de cooperativas</p>
+          </div>
+
+          <button onclick="abrirModalNovaCooperativa()">
+            Nova Cooperativa
+          </button>
+
+        </div>
+
+        <div class="table-wrapper">
+
+          <table>
+
+            <thead>
+
+              <tr>
+                <th>Nome</th>
+                <th>Código</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+
+            </thead>
+
+            <tbody id="tabelaCooperativasBody"></tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- MODAL USUÁRIO -->
+
+  <div
+    class="modal"
+    id="modalUsuario"
+  >
+
+    <div class="modal-content">
+
+      <div class="modal-header">
+
+        <h2 id="modalUsuarioTitulo">
+          Usuário
+        </h2>
+
+        <button onclick="fecharModal('modalUsuario')">
+          X
+        </button>
+
+      </div>
+
+      <form onsubmit="salvarUsuario(event)">
+
+        <input type="hidden" id="usuarioId" />
+
+        <div class="form-grid">
+
+          <input
+            type="text"
+            id="usuarioNome"
+            placeholder="Nome"
+            required
+          />
+
+          <input
+            type="email"
+            id="usuarioEmail"
+            placeholder="E-mail"
+            required
+          />
+
+          <input
+            type="password"
+            id="usuarioSenha"
+            placeholder="Senha"
+          />
+
+          <select id="usuarioPerfil">
+
+            <option value="SUPER_ADMIN">
+              Super Admin
+            </option>
+
+            <option value="ADMINISTRATIVO">
+              Administrativo
+            </option>
+
+            <option value="REGIONAL">
+              Regional
+            </option>
+
+            <option value="CONSULTOR">
+              Consultor
+            </option>
+
+          </select>
+
+          <select id="usuarioCooperativa"></select>
+
+          <select id="usuarioStatus">
+
+            <option value="ATIVO">
+              Ativo
+            </option>
+
+            <option value="INATIVO">
+              Inativo
+            </option>
+
+          </select>
+
+        </div>
+
+        <button type="submit">
+          Salvar Usuário
+        </button>
+
+      </form>
+
     </div>
 
-    <!-- PAINEL PRINCIPAL (INICIALMENTE OCULTO) -->
-    <div id="painel" style="display: none;">
-        <div class="topo">
-            <div class="logo">Portal Consultor</div>
-            <div class="user-info">
-                <span id="usuarioNome"></span> | <small id="usuarioPerfil"></small>
-            </div>
+  </div>
+
+  <!-- MODAL COOPERATIVA -->
+
+  <div
+    class="modal"
+    id="modalCooperativa"
+  >
+
+    <div class="modal-content">
+
+      <div class="modal-header">
+
+        <h2>Nova Cooperativa</h2>
+
+        <button onclick="fecharModal('modalCooperativa')">
+          X
+        </button>
+
+      </div>
+
+      <form onsubmit="salvarCooperativa(event)">
+
+        <div class="form-grid">
+
+          <input
+            type="text"
+            id="coopNome"
+            placeholder="Nome"
+            required
+          />
+
+          <input
+            type="text"
+            id="coopCodigo"
+            placeholder="Código"
+            required
+          />
+
+          <select id="coopStatus">
+
+            <option value="ATIVO">
+              Ativo
+            </option>
+
+            <option value="INATIVO">
+              Inativo
+            </option>
+
+          </select>
+
         </div>
 
-        <div class="layout">
-            <div class="menu">
-                <button onclick="abrirPagina('inicio')">Início</button>
-                <div id="menuAdmin" style="display: none;">
-                    <button onclick="abrirPagina('usuarios')">Usuários</button>
-                    <button onclick="abrirPagina('cooperativas')">Cooperativas</button>
-                </div>
-                <button onclick="abrirPagina('conteudos')">Conteúdos</button>
-                <button onclick="logout()">Sair</button>
-            </div>
+        <button type="submit">
+          Salvar Cooperativa
+        </button>
 
-            <div class="conteudo" id="conteudo">
-                <!-- Conteúdo dinâmico entra aqui -->
-            </div>
-        </div>
+      </form>
+
     </div>
 
-    <!-- SCRIPTS -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="app.js"></script>
+  </div>
+
+  <script src="app.js"></script>
+
 </body>
+
 </html>
