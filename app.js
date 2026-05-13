@@ -939,13 +939,13 @@ function configurarBotaoCentralPorTexto(textoOriginal, categoria) {
     const textoBotao = String(botao.innerText || '').trim();
 
     if (textoBotao.includes(textoOriginal)) {
-      botao.onclick = () => abrirListaConteudosCategoria(categoria, textoOriginal);
+      botao.onclick = () => abrirGaleriaConteudosCategoria(categoria, textoOriginal);
       botao.style.cursor = 'pointer';
     }
   });
 }
 
-function abrirListaConteudosCategoria(categoria, tituloPadrao) {
+function abrirGaleriaConteudosCategoria(categoria, tituloPadrao) {
   const lista = obterConteudosPorCategoria(categoria);
 
   if (!lista.length) {
@@ -953,12 +953,7 @@ function abrirListaConteudosCategoria(categoria, tituloPadrao) {
     return;
   }
 
-  if (lista.length === 1) {
-    abrirModalConteudo(lista[0]);
-    return;
-  }
-
-  abrirModalListaConteudos(tituloPadrao, lista);
+  abrirModalGaleriaConteudos(tituloPadrao, lista, categoria);
 }
 
 function criarModalConteudoDinamico() {
@@ -988,25 +983,25 @@ function criarModalConteudoDinamico() {
 
       </div>
 
-      <div id="conteudoModalImagemBox" style="display:none; margin-bottom: 20px;">
+      <div id="conteudoModalImagemBox" class="conteudo-modal-imagem-box" style="display:none;">
         <img
           id="conteudoModalImagem"
           src=""
           alt="Imagem do conteúdo"
-          style="width:100%; max-height:260px; object-fit:cover; border-radius:16px; border:1px solid #2a2a2a;"
+          class="conteudo-modal-imagem"
         />
       </div>
 
-      <p id="conteudoModalDescricao" style="color:#d8d8d8; line-height:1.6; margin-bottom:22px;">
+      <p id="conteudoModalDescricao" class="conteudo-modal-descricao">
       </p>
 
-      <div id="conteudoModalLista" style="display:none; margin-bottom:22px;">
+      <div id="conteudoModalLista" class="conteudo-modal-lista" style="display:none;">
       </div>
 
       <button
         type="button"
         id="conteudoModalBotao"
-        style="width:100%; height:50px; border:none; border-radius:12px; background:#ffcc00; color:#000; font-weight:bold; cursor:pointer;"
+        class="conteudo-modal-botao"
       >
         Acessar
       </button>
@@ -1058,32 +1053,30 @@ function abrirModalConteudo(conteudo) {
     botao.style.display = 'block';
     botao.innerText = conteudo.botao_texto || 'Acessar conteúdo';
 
-    botao.onclick = () => {
-      const link = String(conteudo.arquivo_link || '').trim();
-
-      if (!link || !link.startsWith('http')) {
-        alert('Link do conteúdo não configurado corretamente.');
-        return;
-      }
-
-      window.open(link, '_blank');
-    };
+    botao.onclick = () => abrirLinkConteudo(conteudo);
   }
 
   abrirModal('modalConteudoGeral');
 }
 
-function abrirModalListaConteudos(tituloLista, lista) {
+function abrirModalGaleriaConteudos(tituloLista, lista, categoria) {
   const titulo = document.getElementById('conteudoModalTitulo');
-  const categoria = document.getElementById('conteudoModalCategoria');
+  const categoriaTexto = document.getElementById('conteudoModalCategoria');
   const descricao = document.getElementById('conteudoModalDescricao');
   const imagemBox = document.getElementById('conteudoModalImagemBox');
   const listaBox = document.getElementById('conteudoModalLista');
   const botao = document.getElementById('conteudoModalBotao');
 
   if (titulo) titulo.innerText = tituloLista || 'Conteúdos';
-  if (categoria) categoria.innerText = 'Lista de conteúdos disponíveis';
-  if (descricao) descricao.innerText = 'Escolha abaixo qual conteúdo deseja acessar.';
+  if (categoriaTexto) categoriaTexto.innerText = `${categoria || ''} • ${lista.length} item(ns) disponível(is)`;
+
+  if (categoria === 'APLICATIVO') {
+    if (descricao) descricao.innerText = 'Veja abaixo os aplicativos, sistemas e atalhos úteis para o dia a dia operacional.';
+  } else if (categoria === 'OPERACIONAL') {
+    if (descricao) descricao.innerText = 'Veja abaixo os treinamentos, materiais e orientações disponíveis para consulta.';
+  } else {
+    if (descricao) descricao.innerText = 'Escolha abaixo qual conteúdo deseja acessar.';
+  }
 
   if (imagemBox) imagemBox.style.display = 'none';
 
@@ -1095,43 +1088,102 @@ function abrirModalListaConteudos(tituloLista, lista) {
   if (listaBox) {
     listaBox.style.display = 'block';
 
-    listaBox.innerHTML = lista.map(item => `
-      <button
-        type="button"
-        onclick="abrirModalConteudoPorId('${item.id}')"
-        style="
-          width:100%;
-          min-height:54px;
-          background:#1a1a1a;
-          color:#fff;
-          border:1px solid #303030;
-          border-radius:14px;
-          padding:14px 16px;
-          margin-bottom:10px;
-          cursor:pointer;
-          text-align:left;
-        "
-      >
-        <strong style="display:block; margin-bottom:4px;">
-          ${item.titulo || 'Conteúdo'}
-        </strong>
-
-        <span style="color:#bdbdbd; font-size:13px;">
-          ${item.tipo || 'LINK'} • ${item.descricao || ''}
-        </span>
-      </button>
-    `).join('');
+    listaBox.innerHTML = `
+      <div class="conteudo-grid">
+        ${lista.map(item => criarCardConteudo(item)).join('')}
+      </div>
+    `;
   }
 
   abrirModal('modalConteudoGeral');
 }
 
-function abrirModalConteudoPorId(id) {
+function criarCardConteudo(item) {
+  const imagem = String(item.imagem_capa || '').trim();
+  const temImagem =
+    imagem &&
+    imagem !== 'link_da_imagem' &&
+    imagem.startsWith('http');
+
+  const imagemHtml = temImagem
+    ? `<img src="${imagem}" alt="${item.titulo || 'Conteúdo'}" class="conteudo-card-img" />`
+    : `
+      <div class="conteudo-card-placeholder">
+        <span>${obterIconeTipo(item.tipo)}</span>
+      </div>
+    `;
+
+  return `
+    <div class="conteudo-card">
+
+      <div class="conteudo-card-media">
+        ${imagemHtml}
+      </div>
+
+      <div class="conteudo-card-info">
+
+        <div>
+          <span class="conteudo-card-tipo">
+            ${item.tipo || 'LINK'}
+          </span>
+
+          <h3>
+            ${item.titulo || 'Conteúdo'}
+          </h3>
+
+          <p>
+            ${item.descricao || 'Material disponível para acesso.'}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onclick="abrirLinkConteudoPorId('${item.id}')"
+          class="conteudo-card-button"
+        >
+          ${item.botao_texto || 'Acessar'}
+        </button>
+
+      </div>
+
+    </div>
+  `;
+}
+
+function obterIconeTipo(tipo) {
+  const tipoTexto = String(tipo || '').toUpperCase();
+
+  if (tipoTexto === 'VIDEO') return '▶';
+  if (tipoTexto === 'PDF') return 'PDF';
+  if (tipoTexto === 'PASTA') return '📁';
+  if (tipoTexto === 'WHATSAPP') return '☏';
+  if (tipoTexto === 'IMAGEM') return 'IMG';
+
+  return '↗';
+}
+
+function abrirLinkConteudoPorId(id) {
   const conteudo = conteudosCache.find(item =>
     String(item.id) === String(id)
   );
 
-  abrirModalConteudo(conteudo);
+  abrirLinkConteudo(conteudo);
+}
+
+function abrirLinkConteudo(conteudo) {
+  if (!conteudo) {
+    alert('Conteúdo não encontrado.');
+    return;
+  }
+
+  const link = String(conteudo.arquivo_link || '').trim();
+
+  if (!link || !link.startsWith('http')) {
+    alert('Link do conteúdo não configurado corretamente.');
+    return;
+  }
+
+  window.open(link, '_blank');
 }
 
 /* =========================
