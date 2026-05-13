@@ -872,12 +872,26 @@ async function carregarConsultores() {
 
     consultoresCache = resultado.consultores || [];
 
-    renderizarProcessos(consultoresCache);
+    filtrarProcessos();
 
   } catch (erro) {
     console.error(erro);
     alert('Erro ao carregar processos.');
   }
+}
+
+function filtrarProcessos() {
+  const filtroStatus = document.getElementById('filtroStatusProcesso')?.value || '';
+
+  let lista = [...consultoresCache];
+
+  if (filtroStatus) {
+    lista = lista.filter(item =>
+      String(item.status || '').toUpperCase() === filtroStatus
+    );
+  }
+
+  renderizarProcessos(lista);
 }
 
 function renderizarProcessos(lista) {
@@ -925,6 +939,10 @@ function renderizarProcessos(lista) {
 
         <button class="danger" onclick="atualizarStatusProcesso('${item.id}', 'RECUSADO')">
           Recusar
+        </button>
+
+        <button class="danger" onclick="excluirTicketConsultor('${item.id}')">
+          Excluir
         </button>
       `
       : `
@@ -989,6 +1007,41 @@ async function atualizarStatusProcesso(id, status) {
   } catch (erro) {
     console.error(erro);
     alert('Erro ao atualizar processo.');
+  }
+}
+
+async function excluirTicketConsultor(id) {
+  if (!usuarioEhAdmin()) {
+    alert('Você não tem permissão para excluir solicitações.');
+    return;
+  }
+
+  const confirmar = confirm(
+    'Tem certeza que deseja excluir esta solicitação?\n\nEssa ação remove apenas o ticket da aba CONSULTORES e não exclui nenhum usuário.'
+  );
+
+  if (!confirmar) return;
+
+  try {
+    const resultado = await apiPost({
+      action: 'excluirTicketConsultor',
+      id,
+      excluido_por: usuarioLogado?.nome || '',
+      perfil: usuarioLogado?.perfil || ''
+    });
+
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao excluir solicitação.');
+      return;
+    }
+
+    alert(resultado.message || 'Solicitação excluída com sucesso.');
+
+    carregarConsultores();
+
+  } catch (erro) {
+    console.error(erro);
+    alert('Erro ao excluir solicitação.');
   }
 }
 
