@@ -8,6 +8,7 @@ let usuarioLogado = null;
 let usuariosCache = [];
 let cooperativasCache = [];
 let consultoresCache = [];
+let conteudosCache = [];
 
 const LINK_CONTRATO_ZAPSIGN =
   'https://app.zapsign.com.br/verificar/doc/4c07c73c-9cbf-4498-89f1-27f95098ac60';
@@ -18,6 +19,8 @@ const LINK_CONTRATO_ZAPSIGN =
 
 document.addEventListener('DOMContentLoaded', () => {
   const usuarioSalvo = localStorage.getItem('usuarioLogado');
+
+  criarModalConteudoDinamico();
 
   if (usuarioSalvo) {
     usuarioLogado = JSON.parse(usuarioSalvo);
@@ -48,6 +51,7 @@ function abrirSistema() {
   carregarDashboard();
   carregarCooperativas();
   carregarPalavraChave();
+  carregarConteudosGerais();
 }
 
 /* =========================
@@ -192,7 +196,10 @@ function mostrarAba(aba) {
 
   if (aba === 'cooperativas') carregarCooperativas();
 
-  if (aba === 'central') carregarPalavraChave();
+  if (aba === 'central') {
+    carregarPalavraChave();
+    carregarConteudosGerais();
+  }
 
   if (aba === 'processos') carregarConsultores();
 }
@@ -851,6 +858,280 @@ function copiarLinkContrato() {
       document.execCommand('copy');
       alert('Link copiado com sucesso.');
     });
+}
+
+/* =========================
+   CONTEÚDOS GERAIS
+========================= */
+
+async function carregarConteudosGerais() {
+  try {
+    const resultado = await apiPost({
+      action: 'listarConteudosGerais',
+      perfil: usuarioLogado?.perfil || ''
+    });
+
+    if (!resultado.success) {
+      console.warn(resultado.message || 'Erro ao carregar conteúdos gerais.');
+      return;
+    }
+
+    conteudosCache = resultado.conteudos || [];
+
+    renderizarConteudosCentral();
+
+  } catch (erro) {
+    console.error('Erro ao carregar conteúdos gerais:', erro);
+  }
+}
+
+function renderizarConteudosCentral() {
+  const campanha = obterPrimeiroConteudoPorCategoria('CAMPANHA');
+  const treinamento = obterPrimeiroConteudoPorCategoria('TREINAMENTO');
+  const evento = obterPrimeiroConteudoPorCategoria('EVENTO');
+
+  const itensCentral = document.querySelectorAll('.central-item');
+
+  if (itensCentral && itensCentral.length >= 3) {
+    configurarItemCentral(itensCentral[0], campanha, 'Campanha promocional em andamento');
+    configurarItemCentral(itensCentral[1], treinamento, 'Novo treinamento disponível');
+    configurarItemCentral(itensCentral[2], evento, 'Evento regional confirmado');
+  }
+
+  configurarBotaoCentralPorTexto('Treinamento Operacional', 'OPERACIONAL');
+  configurarBotaoCentralPorTexto('Aplicativos de Uso Geral', 'APLICATIVO');
+}
+
+function obterPrimeiroConteudoPorCategoria(categoria) {
+  return conteudosCache.find(item =>
+    String(item.categoria || '').toUpperCase() === categoria
+  );
+}
+
+function obterConteudosPorCategoria(categoria) {
+  return conteudosCache.filter(item =>
+    String(item.categoria || '').toUpperCase() === categoria
+  );
+}
+
+function configurarItemCentral(elemento, conteudo, textoPadrao) {
+  if (!elemento) return;
+
+  elemento.style.cursor = 'pointer';
+
+  if (conteudo) {
+    elemento.innerText = conteudo.titulo || textoPadrao;
+    elemento.onclick = () => abrirModalConteudo(conteudo);
+    elemento.title = 'Clique para acessar';
+  } else {
+    elemento.innerText = textoPadrao;
+    elemento.onclick = () => {
+      alert('Nenhum conteúdo ativo cadastrado para esta seção.');
+    };
+    elemento.title = 'Nenhum conteúdo ativo cadastrado';
+  }
+}
+
+function configurarBotaoCentralPorTexto(textoOriginal, categoria) {
+  const botoes = document.querySelectorAll('.btn-central');
+
+  botoes.forEach(botao => {
+    const textoBotao = String(botao.innerText || '').trim();
+
+    if (textoBotao.includes(textoOriginal)) {
+      botao.onclick = () => abrirListaConteudosCategoria(categoria, textoOriginal);
+      botao.style.cursor = 'pointer';
+    }
+  });
+}
+
+function abrirListaConteudosCategoria(categoria, tituloPadrao) {
+  const lista = obterConteudosPorCategoria(categoria);
+
+  if (!lista.length) {
+    alert('Nenhum conteúdo ativo cadastrado para esta seção.');
+    return;
+  }
+
+  if (lista.length === 1) {
+    abrirModalConteudo(lista[0]);
+    return;
+  }
+
+  abrirModalListaConteudos(tituloPadrao, lista);
+}
+
+function criarModalConteudoDinamico() {
+  if (document.getElementById('modalConteudoGeral')) return;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.id = 'modalConteudoGeral';
+
+  modal.innerHTML = `
+    <div class="modal-content modal-conteudo-geral">
+
+      <div class="modal-header">
+
+        <div>
+          <h2 id="conteudoModalTitulo">
+            Conteúdo
+          </h2>
+
+          <p id="conteudoModalCategoria" class="modal-subtitle">
+          </p>
+        </div>
+
+        <button onclick="fecharModal('modalConteudoGeral')">
+          X
+        </button>
+
+      </div>
+
+      <div id="conteudoModalImagemBox" style="display:none; margin-bottom: 20px;">
+        <img
+          id="conteudoModalImagem"
+          src=""
+          alt="Imagem do conteúdo"
+          style="width:100%; max-height:260px; object-fit:cover; border-radius:16px; border:1px solid #2a2a2a;"
+        />
+      </div>
+
+      <p id="conteudoModalDescricao" style="color:#d8d8d8; line-height:1.6; margin-bottom:22px;">
+      </p>
+
+      <div id="conteudoModalLista" style="display:none; margin-bottom:22px;">
+      </div>
+
+      <button
+        type="button"
+        id="conteudoModalBotao"
+        style="width:100%; height:50px; border:none; border-radius:12px; background:#ffcc00; color:#000; font-weight:bold; cursor:pointer;"
+      >
+        Acessar
+      </button>
+
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+function abrirModalConteudo(conteudo) {
+  if (!conteudo) {
+    alert('Conteúdo não encontrado.');
+    return;
+  }
+
+  const titulo = document.getElementById('conteudoModalTitulo');
+  const categoria = document.getElementById('conteudoModalCategoria');
+  const descricao = document.getElementById('conteudoModalDescricao');
+  const imagemBox = document.getElementById('conteudoModalImagemBox');
+  const imagem = document.getElementById('conteudoModalImagem');
+  const listaBox = document.getElementById('conteudoModalLista');
+  const botao = document.getElementById('conteudoModalBotao');
+
+  if (titulo) titulo.innerText = conteudo.titulo || 'Conteúdo';
+  if (categoria) categoria.innerText = `${conteudo.categoria || ''} ${conteudo.tipo ? '• ' + conteudo.tipo : ''}`;
+  if (descricao) descricao.innerText = conteudo.descricao || '';
+
+  if (listaBox) {
+    listaBox.style.display = 'none';
+    listaBox.innerHTML = '';
+  }
+
+  const imagemCapa = String(conteudo.imagem_capa || '').trim();
+
+  if (
+    imagemCapa &&
+    imagemCapa !== 'link_da_imagem' &&
+    imagemCapa.startsWith('http')
+  ) {
+    imagem.src = imagemCapa;
+    imagemBox.style.display = 'block';
+  } else {
+    imagem.src = '';
+    imagemBox.style.display = 'none';
+  }
+
+  if (botao) {
+    botao.style.display = 'block';
+    botao.innerText = conteudo.botao_texto || 'Acessar conteúdo';
+
+    botao.onclick = () => {
+      const link = String(conteudo.arquivo_link || '').trim();
+
+      if (!link || !link.startsWith('http')) {
+        alert('Link do conteúdo não configurado corretamente.');
+        return;
+      }
+
+      window.open(link, '_blank');
+    };
+  }
+
+  abrirModal('modalConteudoGeral');
+}
+
+function abrirModalListaConteudos(tituloLista, lista) {
+  const titulo = document.getElementById('conteudoModalTitulo');
+  const categoria = document.getElementById('conteudoModalCategoria');
+  const descricao = document.getElementById('conteudoModalDescricao');
+  const imagemBox = document.getElementById('conteudoModalImagemBox');
+  const listaBox = document.getElementById('conteudoModalLista');
+  const botao = document.getElementById('conteudoModalBotao');
+
+  if (titulo) titulo.innerText = tituloLista || 'Conteúdos';
+  if (categoria) categoria.innerText = 'Lista de conteúdos disponíveis';
+  if (descricao) descricao.innerText = 'Escolha abaixo qual conteúdo deseja acessar.';
+
+  if (imagemBox) imagemBox.style.display = 'none';
+
+  if (botao) {
+    botao.style.display = 'none';
+    botao.onclick = null;
+  }
+
+  if (listaBox) {
+    listaBox.style.display = 'block';
+
+    listaBox.innerHTML = lista.map(item => `
+      <button
+        type="button"
+        onclick="abrirModalConteudoPorId('${item.id}')"
+        style="
+          width:100%;
+          min-height:54px;
+          background:#1a1a1a;
+          color:#fff;
+          border:1px solid #303030;
+          border-radius:14px;
+          padding:14px 16px;
+          margin-bottom:10px;
+          cursor:pointer;
+          text-align:left;
+        "
+      >
+        <strong style="display:block; margin-bottom:4px;">
+          ${item.titulo || 'Conteúdo'}
+        </strong>
+
+        <span style="color:#bdbdbd; font-size:13px;">
+          ${item.tipo || 'LINK'} • ${item.descricao || ''}
+        </span>
+      </button>
+    `).join('');
+  }
+
+  abrirModal('modalConteudoGeral');
+}
+
+function abrirModalConteudoPorId(id) {
+  const conteudo = conteudosCache.find(item =>
+    String(item.id) === String(id)
+  );
+
+  abrirModalConteudo(conteudo);
 }
 
 /* =========================
