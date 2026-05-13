@@ -444,6 +444,21 @@
 
         </div>
 
+        <div class="filtros">
+
+          <select id="filtroStatusProcesso" onchange="filtrarProcessos()">
+            <option value="">Todos os status</option>
+            <option value="PENDENTE">Pendente</option>
+            <option value="CADASTRO REALIZADO">Cadastro realizado</option>
+            <option value="RECUSADO">Recusado</option>
+          </select>
+
+          <button onclick="carregarConsultores()">
+            Atualizar Lista
+          </button>
+
+        </div>
+
         <div class="table-wrapper">
 
           <table>
