@@ -861,331 +861,196 @@ function copiarLinkContrato() {
 }
 
 /* =========================
-   CONTEÚDOS GERAIS
+   BIBLIOTECA DE CONTEÚDOS
 ========================= */
 
-async function carregarConteudosGerais() {
-  try {
-    const resultado = await apiPost({
-      action: 'listarConteudosGerais',
-      perfil: usuarioLogado?.perfil || ''
-    });
-
-    if (!resultado.success) {
-      console.warn(resultado.message || 'Erro ao carregar conteúdos gerais.');
-      return;
-    }
-
-    conteudosCache = resultado.conteudos || [];
-
-    renderizarConteudosCentral();
-
-  } catch (erro) {
-    console.error('Erro ao carregar conteúdos gerais:', erro);
-  }
+.biblioteca-modal {
+  width: 100%;
+  max-width: 1040px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #101010;
+  border: 1px solid #2b2b2b;
+  border-radius: 22px;
+  padding: 28px;
 }
 
-function renderizarConteudosCentral() {
-  const campanha = obterPrimeiroConteudoPorCategoria('CAMPANHA');
-  const treinamento = obterPrimeiroConteudoPorCategoria('TREINAMENTO');
-  const evento = obterPrimeiroConteudoPorCategoria('EVENTO');
-
-  const itensCentral = document.querySelectorAll('.central-item');
-
-  if (itensCentral && itensCentral.length >= 3) {
-    configurarItemCentral(itensCentral[0], campanha, 'Campanha promocional em andamento');
-    configurarItemCentral(itensCentral[1], treinamento, 'Novo treinamento disponível');
-    configurarItemCentral(itensCentral[2], evento, 'Evento regional confirmado');
-  }
-
-  configurarBotaoCentralPorTexto('Treinamento Operacional', 'OPERACIONAL');
-  configurarBotaoCentralPorTexto('Aplicativos de Uso Geral', 'APLICATIVO');
+.biblioteca-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
 }
 
-function obterPrimeiroConteudoPorCategoria(categoria) {
-  return conteudosCache.find(item =>
-    String(item.categoria || '').toUpperCase() === categoria
-  );
+.biblioteca-header h2 {
+  font-size: 28px;
+  color: #ffffff;
+  margin-bottom: 6px;
 }
 
-function obterConteudosPorCategoria(categoria) {
-  return conteudosCache.filter(item =>
-    String(item.categoria || '').toUpperCase() === categoria
-  );
+.biblioteca-header p {
+  color: #bdbdbd;
+  font-size: 15px;
+  line-height: 1.5;
 }
 
-function configurarItemCentral(elemento, conteudo, textoPadrao) {
-  if (!elemento) return;
-
-  elemento.style.cursor = 'pointer';
-
-  if (conteudo) {
-    elemento.innerText = conteudo.titulo || textoPadrao;
-    elemento.onclick = () => abrirModalConteudo(conteudo);
-    elemento.title = 'Clique para acessar';
-  } else {
-    elemento.innerText = textoPadrao;
-    elemento.onclick = () => {
-      alert('Nenhum conteúdo ativo cadastrado para esta seção.');
-    };
-    elemento.title = 'Nenhum conteúdo ativo cadastrado';
-  }
+.biblioteca-fechar {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  background: #1f1f1f;
+  color: #ffffff;
+  cursor: pointer;
+  font-weight: bold;
 }
 
-function configurarBotaoCentralPorTexto(textoOriginal, categoria) {
-  const botoes = document.querySelectorAll('.btn-central');
-
-  botoes.forEach(botao => {
-    const textoBotao = String(botao.innerText || '').trim();
-
-    if (textoBotao.includes(textoOriginal)) {
-      botao.onclick = () => abrirGaleriaConteudosCategoria(categoria, textoOriginal);
-      botao.style.cursor = 'pointer';
-    }
-  });
+.biblioteca-search-row {
+  margin-bottom: 24px;
 }
 
-function abrirGaleriaConteudosCategoria(categoria, tituloPadrao) {
-  const lista = obterConteudosPorCategoria(categoria);
-
-  if (!lista.length) {
-    alert('Nenhum conteúdo ativo cadastrado para esta seção.');
-    return;
-  }
-
-  abrirModalGaleriaConteudos(tituloPadrao, lista, categoria);
+.biblioteca-search-row input {
+  width: 100%;
+  height: 50px;
+  background: #151515;
+  border: 1px solid #303030;
+  border-radius: 14px;
+  color: #ffffff;
+  padding: 0 16px;
+  outline: none;
+  font-size: 15px;
 }
 
-function criarModalConteudoDinamico() {
-  if (document.getElementById('modalConteudoGeral')) return;
-
-  const modal = document.createElement('div');
-  modal.className = 'modal';
-  modal.id = 'modalConteudoGeral';
-
-  modal.innerHTML = `
-    <div class="modal-content modal-conteudo-geral">
-
-      <div class="modal-header">
-
-        <div>
-          <h2 id="conteudoModalTitulo">
-            Conteúdo
-          </h2>
-
-          <p id="conteudoModalCategoria" class="modal-subtitle">
-          </p>
-        </div>
-
-        <button onclick="fecharModal('modalConteudoGeral')">
-          X
-        </button>
-
-      </div>
-
-      <div id="conteudoModalImagemBox" class="conteudo-modal-imagem-box" style="display:none;">
-        <img
-          id="conteudoModalImagem"
-          src=""
-          alt="Imagem do conteúdo"
-          class="conteudo-modal-imagem"
-        />
-      </div>
-
-      <p id="conteudoModalDescricao" class="conteudo-modal-descricao">
-      </p>
-
-      <div id="conteudoModalLista" class="conteudo-modal-lista" style="display:none;">
-      </div>
-
-      <button
-        type="button"
-        id="conteudoModalBotao"
-        class="conteudo-modal-botao"
-      >
-        Acessar
-      </button>
-
-    </div>
-  `;
-
-  document.body.appendChild(modal);
+.biblioteca-search-row input:focus {
+  border-color: #ffcc00;
 }
 
-function abrirModalConteudo(conteudo) {
-  if (!conteudo) {
-    alert('Conteúdo não encontrado.');
-    return;
-  }
+.biblioteca-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 18px;
+}
 
-  const titulo = document.getElementById('conteudoModalTitulo');
-  const categoria = document.getElementById('conteudoModalCategoria');
-  const descricao = document.getElementById('conteudoModalDescricao');
-  const imagemBox = document.getElementById('conteudoModalImagemBox');
-  const imagem = document.getElementById('conteudoModalImagem');
-  const listaBox = document.getElementById('conteudoModalLista');
-  const botao = document.getElementById('conteudoModalBotao');
+.biblioteca-card {
+  background: #151515;
+  border: 1px solid #2d2d2d;
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 330px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
 
-  if (titulo) titulo.innerText = conteudo.titulo || 'Conteúdo';
-  if (categoria) categoria.innerText = `${conteudo.categoria || ''} ${conteudo.tipo ? '• ' + conteudo.tipo : ''}`;
-  if (descricao) descricao.innerText = conteudo.descricao || '';
+.biblioteca-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 204, 0, 0.7);
+}
 
-  if (listaBox) {
-    listaBox.style.display = 'none';
-    listaBox.innerHTML = '';
-  }
+.biblioteca-card-media {
+  width: 100%;
+  height: 132px;
+  background: #1c1c1c;
+  border-bottom: 1px solid #2a2a2a;
+}
 
-  const imagemCapa = String(conteudo.imagem_capa || '').trim();
+.biblioteca-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
-  if (
-    imagemCapa &&
-    imagemCapa !== 'link_da_imagem' &&
-    imagemCapa.startsWith('http')
-  ) {
-    imagem.src = imagemCapa;
-    imagemBox.style.display = 'block';
-  } else {
-    imagem.src = '';
-    imagemBox.style.display = 'none';
+.biblioteca-card-placeholder {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at top right, rgba(255, 204, 0, 0.16), transparent 36%),
+    #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.biblioteca-card-placeholder span {
+  color: #ffcc00;
+  font-size: 28px;
+  font-weight: 900;
+}
+
+.biblioteca-card-body {
+  padding: 16px;
+  flex: 1;
+}
+
+.biblioteca-card-tipo {
+  display: inline-flex;
+  width: fit-content;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(255, 204, 0, 0.12);
+  color: #ffcc00;
+  font-size: 11px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.biblioteca-card-body h3 {
+  color: #ffffff;
+  font-size: 17px;
+  margin-bottom: 8px;
+  line-height: 1.25;
+}
+
+.biblioteca-card-body p {
+  color: #bdbdbd;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.biblioteca-card-footer {
+  padding: 0 16px 16px;
+}
+
+.biblioteca-card-footer button {
+  width: 100%;
+  height: 42px;
+  border: none;
+  border-radius: 12px;
+  background: #ffcc00;
+  color: #000000;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.biblioteca-card-footer button:hover {
+  filter: brightness(0.95);
+}
+
+.biblioteca-vazia {
+  background: #151515;
+  border: 1px solid #303030;
+  border-radius: 16px;
+  padding: 28px;
+  color: #bdbdbd;
+  text-align: center;
+  margin-top: 20px;
+}
+
+@media (max-width: 700px) {
+  .biblioteca-modal {
+    padding: 22px;
+    max-height: 92vh;
   }
 
-  if (botao) {
-    botao.style.display = 'block';
-    botao.innerText = conteudo.botao_texto || 'Acessar conteúdo';
-
-    botao.onclick = () => abrirLinkConteudo(conteudo);
+  .biblioteca-header {
+    flex-direction: column;
   }
 
-  abrirModal('modalConteudoGeral');
-}
-
-function abrirModalGaleriaConteudos(tituloLista, lista, categoria) {
-  const titulo = document.getElementById('conteudoModalTitulo');
-  const categoriaTexto = document.getElementById('conteudoModalCategoria');
-  const descricao = document.getElementById('conteudoModalDescricao');
-  const imagemBox = document.getElementById('conteudoModalImagemBox');
-  const listaBox = document.getElementById('conteudoModalLista');
-  const botao = document.getElementById('conteudoModalBotao');
-
-  if (titulo) titulo.innerText = tituloLista || 'Conteúdos';
-  if (categoriaTexto) categoriaTexto.innerText = `${categoria || ''} • ${lista.length} item(ns) disponível(is)`;
-
-  if (categoria === 'APLICATIVO') {
-    if (descricao) descricao.innerText = 'Veja abaixo os aplicativos, sistemas e atalhos úteis para o dia a dia operacional.';
-  } else if (categoria === 'OPERACIONAL') {
-    if (descricao) descricao.innerText = 'Veja abaixo os treinamentos, materiais e orientações disponíveis para consulta.';
-  } else {
-    if (descricao) descricao.innerText = 'Escolha abaixo qual conteúdo deseja acessar.';
+  .biblioteca-grid {
+    grid-template-columns: 1fr;
   }
-
-  if (imagemBox) imagemBox.style.display = 'none';
-
-  if (botao) {
-    botao.style.display = 'none';
-    botao.onclick = null;
-  }
-
-  if (listaBox) {
-    listaBox.style.display = 'block';
-
-    listaBox.innerHTML = `
-      <div class="conteudo-grid">
-        ${lista.map(item => criarCardConteudo(item)).join('')}
-      </div>
-    `;
-  }
-
-  abrirModal('modalConteudoGeral');
 }
-
-function criarCardConteudo(item) {
-  const imagem = String(item.imagem_capa || '').trim();
-  const temImagem =
-    imagem &&
-    imagem !== 'link_da_imagem' &&
-    imagem.startsWith('http');
-
-  const imagemHtml = temImagem
-    ? `<img src="${imagem}" alt="${item.titulo || 'Conteúdo'}" class="conteudo-card-img" />`
-    : `
-      <div class="conteudo-card-placeholder">
-        <span>${obterIconeTipo(item.tipo)}</span>
-      </div>
-    `;
-
-  return `
-    <div class="conteudo-card">
-
-      <div class="conteudo-card-media">
-        ${imagemHtml}
-      </div>
-
-      <div class="conteudo-card-info">
-
-        <div>
-          <span class="conteudo-card-tipo">
-            ${item.tipo || 'LINK'}
-          </span>
-
-          <h3>
-            ${item.titulo || 'Conteúdo'}
-          </h3>
-
-          <p>
-            ${item.descricao || 'Material disponível para acesso.'}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onclick="abrirLinkConteudoPorId('${item.id}')"
-          class="conteudo-card-button"
-        >
-          ${item.botao_texto || 'Acessar'}
-        </button>
-
-      </div>
-
-    </div>
-  `;
-}
-
-function obterIconeTipo(tipo) {
-  const tipoTexto = String(tipo || '').toUpperCase();
-
-  if (tipoTexto === 'VIDEO') return '▶';
-  if (tipoTexto === 'PDF') return 'PDF';
-  if (tipoTexto === 'PASTA') return '📁';
-  if (tipoTexto === 'WHATSAPP') return '☏';
-  if (tipoTexto === 'IMAGEM') return 'IMG';
-
-  return '↗';
-}
-
-function abrirLinkConteudoPorId(id) {
-  const conteudo = conteudosCache.find(item =>
-    String(item.id) === String(id)
-  );
-
-  abrirLinkConteudo(conteudo);
-}
-
-function abrirLinkConteudo(conteudo) {
-  if (!conteudo) {
-    alert('Conteúdo não encontrado.');
-    return;
-  }
-
-  const link = String(conteudo.arquivo_link || '').trim();
-
-  if (!link || !link.startsWith('http')) {
-    alert('Link do conteúdo não configurado corretamente.');
-    return;
-  }
-
-  window.open(link, '_blank');
-}
-
 /* =========================
    PROCESSOS ADMINISTRATIVOS
 ========================= */
