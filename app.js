@@ -261,6 +261,27 @@ function podeCriarPerfil(perfilNovo) {
   return false;
 }
 
+function obterMensagemProtecaoUsuario(usuarioAlvo) {
+  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfilAlvo = String(usuarioAlvo?.perfil || '').toUpperCase();
+
+  if (perfilLogado === 'SUPER_ADMIN') return '';
+
+  if (perfilLogado === 'ADMINISTRATIVO' && perfilAlvo === 'SUPER_ADMIN') {
+    return 'Usuário protegido';
+  }
+
+  if (perfilLogado === 'ADMINISTRATIVO' && mesmoUsuario(usuarioAlvo?.id)) {
+    return 'Seu usuário';
+  }
+
+  if (perfilLogado === 'ADMINISTRATIVO' && perfilAlvo === 'ADMINISTRATIVO') {
+    return 'Administrativo';
+  }
+
+  return '';
+}
+
 function ajustarOpcoesPerfilUsuario(perfilAtual = '') {
   const select = document.getElementById('usuarioPerfil');
   if (!select) return;
@@ -411,30 +432,50 @@ function renderizarUsuarios(lista) {
     const podeEditar = podeEditarUsuarioAlvo(usuario);
     const podeAlterarStatus = podeAlterarStatusUsuarioAlvo(usuario);
     const podeExcluir = podeExcluirUsuarioAlvo(usuario);
+    const mensagemProtecao = obterMensagemProtecaoUsuario(usuario);
 
-    const botoesAcoes = `
-      <button
-        onclick="abrirModalEditarUsuario('${usuario.id}')"
-        ${podeEditar ? '' : 'disabled title="Sem permissão para editar este usuário"'}
-      >
-        Editar
-      </button>
+    let botoesAcoes = '';
 
-      <button
-        onclick="alterarStatusUsuario('${usuario.id}')"
-        ${podeAlterarStatus ? '' : 'disabled title="Sem permissão para alterar este usuário"'}
-      >
-        ${statusTexto === 'ATIVO' ? 'Inativar' : 'Ativar'}
-      </button>
+    if (podeEditar) {
+      botoesAcoes += `
+        <button onclick="abrirModalEditarUsuario('${usuario.id}')">
+          Editar
+        </button>
+      `;
+    }
 
-      <button
-        class="danger"
-        onclick="confirmarExclusaoUsuario('${usuario.id}', '${usuario.nome || ''}')"
-        ${podeExcluir ? '' : 'disabled title="Sem permissão para excluir este usuário"'}
-      >
-        Excluir
-      </button>
-    `;
+    if (podeAlterarStatus) {
+      botoesAcoes += `
+        <button onclick="alterarStatusUsuario('${usuario.id}')">
+          ${statusTexto === 'ATIVO' ? 'Inativar' : 'Ativar'}
+        </button>
+      `;
+    }
+
+    if (podeExcluir) {
+      botoesAcoes += `
+        <button
+          class="danger"
+          onclick="confirmarExclusaoUsuario('${usuario.id}', '${usuario.nome || ''}')"
+        >
+          Excluir
+        </button>
+      `;
+    }
+
+    if (!botoesAcoes.trim()) {
+      botoesAcoes = `
+        <span class="acao-protegida">
+          ${mensagemProtecao || 'Sem ações disponíveis'}
+        </span>
+      `;
+    } else if (mensagemProtecao && !podeExcluir) {
+      botoesAcoes += `
+        <span class="acao-protegida">
+          ${mensagemProtecao}
+        </span>
+      `;
+    }
 
     tr.innerHTML = `
       <td>
@@ -552,12 +593,7 @@ function abrirModalNovoUsuario() {
   document.getElementById('usuarioEmail').value = '';
   document.getElementById('usuarioSenha').value = '';
 
-  if (usuarioEhAdministrativo()) {
-    document.getElementById('usuarioPerfil').value = 'CONSULTOR';
-  } else {
-    document.getElementById('usuarioPerfil').value = 'CONSULTOR';
-  }
-
+  document.getElementById('usuarioPerfil').value = 'CONSULTOR';
   document.getElementById('usuarioCooperativa').value = '';
   document.getElementById('usuarioPermissoes').value = '';
   document.getElementById('usuarioStatus').value = 'ATIVO';
