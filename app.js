@@ -120,7 +120,7 @@ function sair() {
 }
 
 /* =========================
-   PERMISSÕES
+   PERMISSÕES / HIERARQUIA
 ========================= */
 
 function aplicarPermissoesVisuais() {
@@ -128,11 +128,20 @@ function aplicarPermissoesVisuais() {
 
   const btnCadastro = document.getElementById('btnCadastroConsultor');
   const menuProcessos = document.querySelector('[data-aba="processos"]');
+  const menuUsuarios = document.querySelector('[data-aba="usuarios"]');
+  const menuCooperativas = document.querySelector('[data-aba="cooperativas"]');
 
   if (perfil === 'CONSULTOR') {
     if (btnCadastro) btnCadastro.style.display = 'none';
     if (menuProcessos) menuProcessos.style.display = 'none';
+    if (menuUsuarios) menuUsuarios.style.display = 'none';
+    if (menuCooperativas) menuCooperativas.style.display = 'none';
     return;
+  }
+
+  if (perfil === 'REGIONAL') {
+    if (menuUsuarios) menuUsuarios.style.display = 'none';
+    if (menuCooperativas) menuCooperativas.style.display = 'none';
   }
 
   if (btnCadastro) {
@@ -145,6 +154,11 @@ function aplicarPermissoesVisuais() {
   }
 }
 
+function usuarioEhSuperAdmin() {
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+  return perfil === 'SUPER_ADMIN';
+}
+
 function usuarioEhAdmin() {
   const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
 
@@ -152,6 +166,11 @@ function usuarioEhAdmin() {
     perfil === 'SUPER_ADMIN' ||
     perfil === 'ADMINISTRATIVO'
   );
+}
+
+function usuarioEhAdministrativo() {
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+  return perfil === 'ADMINISTRATIVO';
 }
 
 function usuarioEhRegional() {
@@ -169,11 +188,113 @@ function podeSolicitarCadastroConsultor() {
   );
 }
 
+function podeGerenciarUsuarios() {
+  return usuarioEhSuperAdmin() || usuarioEhAdministrativo();
+}
+
+function mesmoUsuario(id) {
+  return String(usuarioLogado?.id || '') === String(id || '');
+}
+
+function podeEditarUsuarioAlvo(usuarioAlvo) {
+  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfilAlvo = String(usuarioAlvo?.perfil || '').toUpperCase();
+
+  if (!podeGerenciarUsuarios()) return false;
+
+  if (perfilLogado === 'SUPER_ADMIN') return true;
+
+  if (perfilLogado === 'ADMINISTRATIVO') {
+    if (perfilAlvo === 'SUPER_ADMIN') return false;
+    return true;
+  }
+
+  return false;
+}
+
+function podeAlterarStatusUsuarioAlvo(usuarioAlvo) {
+  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfilAlvo = String(usuarioAlvo?.perfil || '').toUpperCase();
+
+  if (!podeGerenciarUsuarios()) return false;
+  if (mesmoUsuario(usuarioAlvo?.id)) return false;
+
+  if (perfilLogado === 'SUPER_ADMIN') return true;
+
+  if (perfilLogado === 'ADMINISTRATIVO') {
+    if (perfilAlvo === 'SUPER_ADMIN') return false;
+    return true;
+  }
+
+  return false;
+}
+
+function podeExcluirUsuarioAlvo(usuarioAlvo) {
+  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfilAlvo = String(usuarioAlvo?.perfil || '').toUpperCase();
+
+  if (!podeGerenciarUsuarios()) return false;
+  if (mesmoUsuario(usuarioAlvo?.id)) return false;
+
+  if (perfilLogado === 'SUPER_ADMIN') return true;
+
+  if (perfilLogado === 'ADMINISTRATIVO') {
+    if (perfilAlvo === 'SUPER_ADMIN') return false;
+    if (perfilAlvo === 'ADMINISTRATIVO') return false;
+    return true;
+  }
+
+  return false;
+}
+
+function podeCriarPerfil(perfilNovo) {
+  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfil = String(perfilNovo || '').toUpperCase();
+
+  if (perfilLogado === 'SUPER_ADMIN') return true;
+
+  if (perfilLogado === 'ADMINISTRATIVO') {
+    if (perfil === 'SUPER_ADMIN') return false;
+    return true;
+  }
+
+  return false;
+}
+
+function ajustarOpcoesPerfilUsuario(perfilAtual = '') {
+  const select = document.getElementById('usuarioPerfil');
+  if (!select) return;
+
+  Array.from(select.options).forEach(option => {
+    option.disabled = false;
+
+    if (usuarioEhAdministrativo() && option.value === 'SUPER_ADMIN') {
+      option.disabled = true;
+    }
+  });
+
+  if (usuarioEhAdministrativo() && select.value === 'SUPER_ADMIN') {
+    select.value = perfilAtual && perfilAtual !== 'SUPER_ADMIN'
+      ? perfilAtual
+      : 'CONSULTOR';
+  }
+}
+
 /* =========================
    MENU
 ========================= */
 
 function mostrarAba(aba) {
+  if (aba === 'usuarios' && !podeGerenciarUsuarios()) {
+    alert('Você não tem permissão para acessar usuários.');
+    return;
+  }
+
+  if (aba === 'cooperativas' && !podeGerenciarUsuarios()) {
+    alert('Você não tem permissão para acessar cooperativas.');
+    return;
+  }
+
   document.querySelectorAll('.section').forEach(secao => {
     secao.style.display = 'none';
   });
@@ -235,6 +356,11 @@ async function carregarDashboard() {
 ========================= */
 
 async function carregarUsuarios() {
+  if (!podeGerenciarUsuarios()) {
+    alert('Você não tem permissão para carregar usuários.');
+    return;
+  }
+
   try {
     const resultado = await apiPost({
       action: 'listarUsuarios'
@@ -282,6 +408,34 @@ function renderizarUsuarios(lista) {
       ? 'status ativo'
       : 'status inativo';
 
+    const podeEditar = podeEditarUsuarioAlvo(usuario);
+    const podeAlterarStatus = podeAlterarStatusUsuarioAlvo(usuario);
+    const podeExcluir = podeExcluirUsuarioAlvo(usuario);
+
+    const botoesAcoes = `
+      <button
+        onclick="abrirModalEditarUsuario('${usuario.id}')"
+        ${podeEditar ? '' : 'disabled title="Sem permissão para editar este usuário"'}
+      >
+        Editar
+      </button>
+
+      <button
+        onclick="alterarStatusUsuario('${usuario.id}')"
+        ${podeAlterarStatus ? '' : 'disabled title="Sem permissão para alterar este usuário"'}
+      >
+        ${statusTexto === 'ATIVO' ? 'Inativar' : 'Ativar'}
+      </button>
+
+      <button
+        class="danger"
+        onclick="confirmarExclusaoUsuario('${usuario.id}', '${usuario.nome || ''}')"
+        ${podeExcluir ? '' : 'disabled title="Sem permissão para excluir este usuário"'}
+      >
+        Excluir
+      </button>
+    `;
+
     tr.innerHTML = `
       <td>
         <strong>${usuario.nome || '-'}</strong>
@@ -305,20 +459,7 @@ function renderizarUsuarios(lista) {
       </td>
 
       <td class="acoes">
-        <button onclick="abrirModalEditarUsuario('${usuario.id}')">
-          Editar
-        </button>
-
-        <button onclick="alterarStatusUsuario('${usuario.id}')">
-          ${statusTexto === 'ATIVO' ? 'Inativar' : 'Ativar'}
-        </button>
-
-        <button
-          class="danger"
-          onclick="confirmarExclusaoUsuario('${usuario.id}', '${usuario.nome || ''}')"
-        >
-          Excluir
-        </button>
+        ${botoesAcoes}
       </td>
     `;
 
@@ -399,18 +540,30 @@ function filtrarUsuarios() {
 ========================= */
 
 function abrirModalNovoUsuario() {
+  if (!podeGerenciarUsuarios()) {
+    alert('Você não tem permissão para criar usuários.');
+    return;
+  }
+
   document.getElementById('modalUsuarioTitulo').innerText = 'Novo Usuário';
 
   document.getElementById('usuarioId').value = '';
   document.getElementById('usuarioNome').value = '';
   document.getElementById('usuarioEmail').value = '';
   document.getElementById('usuarioSenha').value = '';
-  document.getElementById('usuarioPerfil').value = 'CONSULTOR';
+
+  if (usuarioEhAdministrativo()) {
+    document.getElementById('usuarioPerfil').value = 'CONSULTOR';
+  } else {
+    document.getElementById('usuarioPerfil').value = 'CONSULTOR';
+  }
+
   document.getElementById('usuarioCooperativa').value = '';
   document.getElementById('usuarioPermissoes').value = '';
   document.getElementById('usuarioStatus').value = 'ATIVO';
 
   preencherSelectCooperativas();
+  ajustarOpcoesPerfilUsuario();
 
   abrirModal('modalUsuario');
 }
@@ -420,6 +573,11 @@ function abrirModalEditarUsuario(id) {
 
   if (!usuario) {
     alert('Usuário não encontrado.');
+    return;
+  }
+
+  if (!podeEditarUsuarioAlvo(usuario)) {
+    alert('Você não tem permissão para editar este usuário.');
     return;
   }
 
@@ -435,6 +593,7 @@ function abrirModalEditarUsuario(id) {
   document.getElementById('usuarioStatus').value = usuario.status || 'ATIVO';
 
   preencherSelectCooperativas(usuario.cooperativa_id);
+  ajustarOpcoesPerfilUsuario(usuario.perfil || '');
 
   abrirModal('modalUsuario');
 }
@@ -442,15 +601,37 @@ function abrirModalEditarUsuario(id) {
 async function salvarUsuario(event) {
   event.preventDefault();
 
+  if (!podeGerenciarUsuarios()) {
+    alert('Você não tem permissão para salvar usuários.');
+    return;
+  }
+
   const id = document.getElementById('usuarioId').value.trim();
+  const perfilSelecionado = document.getElementById('usuarioPerfil').value;
+
+  if (!podeCriarPerfil(perfilSelecionado)) {
+    alert('Você não tem permissão para criar ou definir este perfil.');
+    return;
+  }
+
+  if (id) {
+    const usuarioAtual = usuariosCache.find(u => String(u.id) === String(id));
+
+    if (!usuarioAtual || !podeEditarUsuarioAlvo(usuarioAtual)) {
+      alert('Você não tem permissão para editar este usuário.');
+      return;
+    }
+  }
 
   const payload = {
     action: id ? 'editarUsuario' : 'salvarUsuario',
     id,
+    usuario_logado_id: usuarioLogado?.id || '',
+    usuario_logado_perfil: usuarioLogado?.perfil || '',
     nome: document.getElementById('usuarioNome').value.trim(),
     email: document.getElementById('usuarioEmail').value.trim(),
     senha: document.getElementById('usuarioSenha').value.trim(),
-    perfil: document.getElementById('usuarioPerfil').value,
+    perfil: perfilSelecionado,
     cooperativa_id: document.getElementById('usuarioCooperativa').value,
     permissoes: document.getElementById('usuarioPermissoes').value.trim(),
     status: document.getElementById('usuarioStatus').value
@@ -482,10 +663,19 @@ async function salvarUsuario(event) {
 }
 
 async function alterarStatusUsuario(id) {
+  const usuario = usuariosCache.find(u => String(u.id) === String(id));
+
+  if (!usuario || !podeAlterarStatusUsuarioAlvo(usuario)) {
+    alert('Você não tem permissão para alterar o status deste usuário.');
+    return;
+  }
+
   try {
     const resultado = await apiPost({
       action: 'alterarStatusUsuario',
-      id
+      id,
+      usuario_logado_id: usuarioLogado?.id || '',
+      usuario_logado_perfil: usuarioLogado?.perfil || ''
     });
 
     if (!resultado.success) {
@@ -503,6 +693,13 @@ async function alterarStatusUsuario(id) {
 }
 
 function confirmarExclusaoUsuario(id, nome) {
+  const usuario = usuariosCache.find(u => String(u.id) === String(id));
+
+  if (!usuario || !podeExcluirUsuarioAlvo(usuario)) {
+    alert('Você não tem permissão para excluir este usuário.');
+    return;
+  }
+
   const confirmar = confirm(
     `Tem certeza que deseja excluir o usuário "${nome}"?\n\nEssa ação não poderá ser desfeita.`
   );
@@ -513,10 +710,19 @@ function confirmarExclusaoUsuario(id, nome) {
 }
 
 async function excluirUsuario(id) {
+  const usuario = usuariosCache.find(u => String(u.id) === String(id));
+
+  if (!usuario || !podeExcluirUsuarioAlvo(usuario)) {
+    alert('Você não tem permissão para excluir este usuário.');
+    return;
+  }
+
   try {
     const resultado = await apiPost({
       action: 'excluirUsuario',
-      id
+      id,
+      usuario_logado_id: usuarioLogado?.id || '',
+      usuario_logado_perfil: usuarioLogado?.perfil || ''
     });
 
     if (!resultado.success) {
@@ -610,6 +816,11 @@ function renderizarCooperativas(lista) {
 }
 
 function abrirModalNovaCooperativa() {
+  if (!podeGerenciarUsuarios()) {
+    alert('Você não tem permissão para criar cooperativas.');
+    return;
+  }
+
   document.getElementById('coopNome').value = '';
   document.getElementById('coopRegional').value = '';
   document.getElementById('coopCidade').value = '';
@@ -620,6 +831,11 @@ function abrirModalNovaCooperativa() {
 
 async function salvarCooperativa(event) {
   event.preventDefault();
+
+  if (!podeGerenciarUsuarios()) {
+    alert('Você não tem permissão para salvar cooperativas.');
+    return;
+  }
 
   const payload = {
     action: 'criarCooperativa',
