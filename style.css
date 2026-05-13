@@ -1016,3 +1016,16 @@ tbody td small {
   }
 
 }
+.acao-protegida {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: rgba(255, 204, 0, 0.10);
+  color: #ffcc00;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+}
