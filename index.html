@@ -14,11 +14,11 @@
 
   <!-- LOGIN -->
 
-  <div id="loginPage" class="login-page">
+  <div id="telaLogin" class="login-page">
 
     <div class="login-bg-symbol"></div>
 
-    <form class="login-box" onsubmit="fazerLogin(event)">
+    <form id="formLogin" class="login-box">
 
       <img src="GPV%20Associados.png" class="logo-login" alt="Logo GPV" />
 
@@ -26,7 +26,7 @@
 
       <p class="login-subtitle">
         Acesso interno para consultores<br />
-        e equipe operacional
+        regionais e equipe operacional
       </p>
 
       <div class="login-input-group">
@@ -34,7 +34,7 @@
 
         <input
           type="email"
-          id="loginEmail"
+          id="email"
           placeholder="E-mail"
           required
         />
@@ -45,7 +45,7 @@
 
         <input
           type="password"
-          id="loginSenha"
+          id="senha"
           placeholder="Senha"
           required
         />
@@ -53,7 +53,7 @@
         <span class="login-eye-icon">◉</span>
       </div>
 
-      <button type="submit">
+      <button type="submit" id="btnLogin">
         Entrar
       </button>
 
@@ -63,7 +63,7 @@
 
   <!-- APP -->
 
-  <div id="appPage" class="app-layout" style="display:none;">
+  <div id="app" class="app-layout" style="display:none;">
 
     <!-- SIDEBAR -->
 
@@ -72,7 +72,7 @@
       <div>
 
         <div class="sidebar-logo">
-          <img src="logo.png" alt="Logo" />
+          <img src="logo.png" alt="Logo GPV" />
         </div>
 
         <nav class="menu">
@@ -81,11 +81,11 @@
             Início
           </button>
 
-          <button class="menu-item" data-aba="usuarios" onclick="mostrarAba('usuarios')">
+          <button id="menuUsuarios" class="menu-item" data-aba="usuarios" onclick="mostrarAba('usuarios')">
             Usuários
           </button>
 
-          <button class="menu-item" data-aba="cooperativas" onclick="mostrarAba('cooperativas')">
+          <button id="menuCooperativas" class="menu-item" data-aba="cooperativas" onclick="mostrarAba('cooperativas')">
             Cooperativas
           </button>
 
@@ -93,7 +93,7 @@
             Central do Consultor
           </button>
 
-          <button class="menu-item" data-aba="processos" onclick="mostrarAba('processos')">
+          <button id="menuProcessos" class="menu-item" data-aba="processos" onclick="mostrarAba('processos')">
             Processos Administrativos
           </button>
 
@@ -101,7 +101,7 @@
 
       </div>
 
-      <button class="btn-sair" onclick="sair()">
+      <button id="btnSair" class="btn-sair">
         Sair
       </button>
 
@@ -115,13 +115,24 @@
 
       <header class="topbar">
 
-        <h2 id="usuarioTopo">
-          Usuário
-        </h2>
+        <div>
+          <h2 id="nomeUsuarioLogado">
+            Usuário
+          </h2>
+
+          <small>
+            <span id="perfilUsuarioLogado">Perfil</span>
+            <span> • </span>
+            <span id="cooperativaUsuarioLogado">Cooperativa</span>
+          </small>
+        </div>
 
       </header>
 
       <!-- DASHBOARD -->
+
+      <section id="dashboard" class="section">
+      </section>
 
       <section id="secao-inicio" class="section">
 
@@ -132,33 +143,42 @@
             <p>Visão geral do sistema</p>
           </div>
 
+          <button id="btnAtualizarDados" type="button">
+            Atualizar Dados
+          </button>
+
         </div>
 
         <div class="dashboard-grid">
 
           <div class="card-dashboard">
-            <span id="dashUsuarios">0</span>
-            <small>Usuários</small>
+            <span id="cardTotalTickets">0</span>
+            <small>Solicitações</small>
           </div>
 
           <div class="card-dashboard">
-            <span id="dashAtivos">0</span>
+            <span id="cardTicketsPendentes">0</span>
+            <small>Pendentes</small>
+          </div>
+
+          <div class="card-dashboard">
+            <span id="cardTicketsRealizados">0</span>
+            <small>Cadastros Realizados</small>
+          </div>
+
+          <div class="card-dashboard">
+            <span id="cardTicketsRecusados">0</span>
+            <small>Recusados</small>
+          </div>
+
+          <div class="card-dashboard">
+            <span id="cardUsuariosAtivos">0</span>
             <small>Usuários Ativos</small>
           </div>
 
           <div class="card-dashboard">
-            <span id="dashConsultores">0</span>
-            <small>Consultores</small>
-          </div>
-
-          <div class="card-dashboard">
-            <span id="dashRegionais">0</span>
-            <small>Regionais</small>
-          </div>
-
-          <div class="card-dashboard">
-            <span id="dashCooperativas">0</span>
-            <small>Cooperativas</small>
+            <span id="cardUsuariosInativos">0</span>
+            <small>Usuários Inativos</small>
           </div>
 
         </div>
@@ -167,143 +187,124 @@
 
       <!-- USUÁRIOS -->
 
-      <section id="secao-usuarios" class="section" style="display:none;">
+      <section id="areaUsuarios" class="section" style="display:none;">
 
-        <div class="section-header">
+        <section id="secao-usuarios">
 
-          <div>
-            <h1>Usuários</h1>
-            <p>Gerenciamento completo de usuários</p>
+          <div class="section-header">
+
+            <div>
+              <h1>Usuários</h1>
+              <p>Gerenciamento e acompanhamento de usuários</p>
+            </div>
+
+            <button id="btnNovoUsuario" type="button">
+              Novo Usuário
+            </button>
+
           </div>
 
-          <button onclick="abrirModalNovoUsuario()">
-            Novo Usuário
-          </button>
+          <div class="filtros">
 
-        </div>
+            <input
+              type="text"
+              id="filtroBuscaUsuario"
+              placeholder="Buscar usuário..."
+            />
 
-        <div class="mini-dashboard">
+            <select id="filtroStatusUsuario">
+              <option value="">Todos Status</option>
+              <option value="ATIVO">Ativo</option>
+              <option value="INATIVO">Inativo</option>
+            </select>
 
-          <div class="mini-card">
-            <span id="miniTotalUsuarios">0</span>
-            <small>Total</small>
+            <select id="filtroPerfilUsuario">
+              <option value="">Todos Perfis</option>
+              <option value="SUPER_ADMIN">Super Admin</option>
+              <option value="ADMINISTRATIVO">Administrativo</option>
+              <option value="REGIONAL">Regional</option>
+              <option value="CONSULTOR">Consultor</option>
+            </select>
+
           </div>
 
-          <div class="mini-card">
-            <span id="miniUsuariosAtivos">0</span>
-            <small>Ativos</small>
+          <div class="table-wrapper">
+
+            <table id="tabelaUsuarios">
+
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>E-mail</th>
+                  <th>Telefone</th>
+                  <th>Perfil</th>
+                  <th>Cooperativa</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+
+              <tbody id="listaUsuarios">
+                <tr>
+                  <td colspan="7" class="empty-table">
+                    Nenhum usuário encontrado.
+                  </td>
+                </tr>
+              </tbody>
+
+            </table>
+
           </div>
 
-          <div class="mini-card">
-            <span id="miniUsuariosInativos">0</span>
-            <small>Inativos</small>
-          </div>
-
-          <div class="mini-card">
-            <span id="miniAdmins">0</span>
-            <small>Admins</small>
-          </div>
-
-          <div class="mini-card">
-            <span id="miniRegionais">0</span>
-            <small>Regionais</small>
-          </div>
-
-          <div class="mini-card">
-            <span id="miniConsultores">0</span>
-            <small>Consultores</small>
-          </div>
-
-        </div>
-
-        <div class="filtros">
-
-          <input
-            type="text"
-            id="buscaUsuario"
-            placeholder="Buscar usuário..."
-            onkeyup="filtrarUsuarios()"
-          />
-
-          <select id="filtroStatusUsuario" onchange="filtrarUsuarios()">
-            <option value="">Todos Status</option>
-            <option value="ATIVO">Ativo</option>
-            <option value="INATIVO">Inativo</option>
-          </select>
-
-          <select id="filtroPerfilUsuario" onchange="filtrarUsuarios()">
-            <option value="">Todos Perfis</option>
-            <option value="SUPER_ADMIN">Super Admin</option>
-            <option value="ADMINISTRATIVO">Administrativo</option>
-            <option value="REGIONAL">Regional</option>
-            <option value="CONSULTOR">Consultor</option>
-          </select>
-
-          <button onclick="carregarUsuarios()">
-            Atualizar Lista
-          </button>
-
-        </div>
-
-        <div class="table-wrapper">
-
-          <table>
-
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>E-mail</th>
-                <th>Perfil</th>
-                <th>Cooperativa</th>
-                <th>Status</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-
-            <tbody id="tabelaUsuariosBody"></tbody>
-
-          </table>
-
-        </div>
+        </section>
 
       </section>
 
       <!-- COOPERATIVAS -->
 
-      <section id="secao-cooperativas" class="section" style="display:none;">
+      <section id="areaCooperativas" class="section" style="display:none;">
 
-        <div class="section-header">
+        <section id="secao-cooperativas">
 
-          <div>
-            <h1>Cooperativas</h1>
-            <p>Gerenciamento de cooperativas</p>
+          <div class="section-header">
+
+            <div>
+              <h1>Cooperativas</h1>
+              <p>Gerenciamento de cooperativas</p>
+            </div>
+
+            <button id="btnNovaCooperativa" type="button">
+              Nova Cooperativa
+            </button>
+
           </div>
 
-          <button onclick="abrirModalNovaCooperativa()">
-            Nova Cooperativa
-          </button>
+          <div class="table-wrapper">
 
-        </div>
+            <table id="tabelaCooperativas">
 
-        <div class="table-wrapper">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Regional Responsável</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
 
-          <table>
+              <tbody id="listaCooperativas">
+                <tr>
+                  <td colspan="4" class="empty-table">
+                    Nenhuma cooperativa encontrada.
+                  </td>
+                </tr>
+              </tbody>
 
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Regional Responsável</th>
-                <th>Cidade</th>
-                <th>Status</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
+            </table>
 
-            <tbody id="tabelaCooperativasBody"></tbody>
+          </div>
 
-          </table>
-
-        </div>
+        </section>
 
       </section>
 
@@ -364,22 +365,23 @@
             <div class="central-botoes">
 
               <button
-                id="btnCadastroConsultor"
+                id="btnAbrirSolicitacaoCadastro"
                 class="btn-central"
-                onclick="abrirModalConsultor()"
+                type="button"
+                onclick="abrirModal('modalSolicitacaoCadastro')"
               >
                 Solicitar Cadastro de Consultor
               </button>
 
-              <button class="btn-central">
+              <button class="btn-central" type="button">
                 Treinamento Operacional
               </button>
 
-              <button class="btn-central">
+              <button class="btn-central" type="button">
                 Aplicativos de Uso Geral
               </button>
 
-              <button class="btn-central destaque">
+              <button class="btn-central destaque" type="button">
 
                 Palavra-chave do dia:
 
@@ -403,8 +405,6 @@
 
           <div class="contatos-grid">
 
-            <!-- ESQUERDA -->
-
             <div class="contato-coluna">
 
               <h3>Assistência 24h</h3>
@@ -417,8 +417,6 @@
               </a>
 
             </div>
-
-            <!-- CENTRO -->
 
             <div class="contato-coluna">
 
@@ -442,8 +440,6 @@
 
             </div>
 
-            <!-- DIREITA -->
-
             <div class="contato-coluna">
 
               <h3>E-mail Oficial</h3>
@@ -458,65 +454,73 @@
 
       </section>
 
-      <!-- PROCESSOS ADMINISTRATIVOS -->
+      <!-- PROCESSOS / TICKETS -->
 
-      <section id="secao-processos" class="section" style="display:none;">
+      <section id="areaTickets" class="section" style="display:none;">
 
-        <div class="section-header">
+        <section id="secao-processos">
 
-          <div>
-            <h1>Processos Administrativos</h1>
-            <p>Acompanhamento de solicitações e cadastros</p>
+          <div class="section-header">
+
+            <div>
+              <h1>Processos Administrativos</h1>
+              <p>Acompanhamento de solicitações de cadastro</p>
+            </div>
+
           </div>
 
-        </div>
+          <div class="filtros">
 
-        <div class="filtros">
+            <input
+              type="text"
+              id="filtroBuscaTicket"
+              placeholder="Buscar processo..."
+            />
 
-          <select id="filtroStatusProcesso" onchange="filtrarProcessos()">
-            <option value="">Todos os status</option>
-            <option value="PENDENTE">Pendente</option>
-            <option value="CADASTRO REALIZADO">Cadastro realizado</option>
-            <option value="RECUSADO">Recusado</option>
-          </select>
+            <select id="filtroStatusTicket">
+              <option value="">Todos os status</option>
+              <option value="PENDENTE">Pendente</option>
+              <option value="CADASTRO REALIZADO">Cadastro realizado</option>
+              <option value="RECUSADO">Recusado</option>
+            </select>
 
-          <button onclick="carregarConsultores()">
-            Atualizar Lista
-          </button>
+          </div>
 
-        </div>
+          <div class="table-wrapper">
 
-        <div class="table-wrapper">
+            <table id="tabelaTickets">
 
-          <table>
+              <thead>
 
-            <thead>
+                <tr>
+                  <th>Consultor</th>
+                  <th>E-mail</th>
+                  <th>Telefone</th>
+                  <th>Cooperativa</th>
+                  <th>Status</th>
+                  <th>Solicitado por</th>
+                  <th>Data</th>
+                  <th>Observação</th>
+                  <th>Ações</th>
+                </tr>
 
-              <tr>
-                <th>Consultor</th>
-                <th>Cooperativa</th>
-                <th>Regional</th>
-                <th>Status</th>
-                <th>Data Solicitação</th>
-                <th>Observação</th>
-                <th>Ações</th>
-              </tr>
+              </thead>
 
-            </thead>
+              <tbody id="listaTickets">
 
-            <tbody id="tabelaProcessosBody">
+                <tr>
+                  <td colspan="9" class="empty-table">
+                    Nenhum processo encontrado.
+                  </td>
+                </tr>
 
-              <tr>
-                <td colspan="7" class="empty-table">
-                  Nenhum processo encontrado.
-                </td>
-              </tr>
+              </tbody>
 
-            </tbody>
+            </table>
 
-          </table>
+          </div>
 
-        </div>
+        </section>
 
       </section>
 
@@ -536,13 +540,13 @@
           Usuário
         </h2>
 
-        <button onclick="fecharModal('modalUsuario')">
+        <button type="button" id="btnFecharModalUsuario">
           X
         </button>
 
       </div>
 
-      <form onsubmit="salvarUsuario(event)">
+      <form id="formUsuario">
 
         <input type="hidden" id="usuarioId" />
 
@@ -552,22 +556,21 @@
 
           <input type="email" id="usuarioEmail" placeholder="E-mail" required />
 
+          <input type="text" id="usuarioTelefone" placeholder="Telefone" />
+
           <input type="password" id="usuarioSenha" placeholder="Senha" />
 
-          <select id="usuarioPerfil">
+          <select id="usuarioPerfil" required>
+            <option value="">Selecione o perfil</option>
             <option value="SUPER_ADMIN">Super Admin</option>
             <option value="ADMINISTRATIVO">Administrativo</option>
             <option value="REGIONAL">Regional</option>
             <option value="CONSULTOR">Consultor</option>
           </select>
 
-          <select id="usuarioCooperativa"></select>
-
-          <input
-            type="text"
-            id="usuarioPermissoes"
-            placeholder="Permissões"
-          />
+          <select id="usuarioCooperativa" required>
+            <option value="">Selecione a cooperativa</option>
+          </select>
 
           <select id="usuarioStatus">
             <option value="ATIVO">Ativo</option>
@@ -576,8 +579,8 @@
 
         </div>
 
-        <button type="submit">
-          Salvar Usuário
+        <button type="submit" id="btnSalvarUsuario">
+          Salvar
         </button>
 
       </form>
@@ -594,15 +597,19 @@
 
       <div class="modal-header">
 
-        <h2>Nova Cooperativa</h2>
+        <h2>
+          Cooperativa
+        </h2>
 
-        <button onclick="fecharModal('modalCooperativa')">
+        <button type="button" onclick="fecharModal('modalCooperativa')">
           X
         </button>
 
       </div>
 
-      <form onsubmit="salvarCooperativa(event)">
+      <form id="formCooperativa">
+
+        <input type="hidden" id="cooperativaId" />
 
         <div class="form-grid">
 
@@ -617,24 +624,16 @@
             type="text"
             id="coopRegional"
             placeholder="Regional responsável"
-            required
-          />
-
-          <input
-            type="text"
-            id="coopCidade"
-            placeholder="Cidade"
-            required
           />
 
           <select id="coopStatus">
-            <option value="ATIVA">Ativa</option>
-            <option value="INATIVA">Inativa</option>
+            <option value="ATIVO">Ativa</option>
+            <option value="INATIVO">Inativa</option>
           </select>
 
         </div>
 
-        <button type="submit">
+        <button type="submit" id="btnSalvarCooperativa">
           Salvar Cooperativa
         </button>
 
@@ -644,104 +643,106 @@
 
   </div>
 
-  <!-- MODAL CONSULTOR -->
+  <!-- MODAL SOLICITAÇÃO DE CADASTRO -->
 
-  <div class="modal" id="modalConsultor">
+  <div class="modal" id="modalSolicitacaoCadastro">
 
     <div class="modal-content modal-consultor">
 
       <div class="modal-header">
 
         <div>
-          <h2 id="tituloModalConsultor">
+          <h2 id="tituloSolicitacao">
             Solicitar Cadastro de Consultor
           </h2>
 
-          <p class="modal-subtitle">
-            Preencha os dados do consultor para análise administrativa.
+          <p id="textoAjudaSolicitacao" class="modal-subtitle">
+            Preencha os dados para envio ao administrativo.
           </p>
         </div>
 
-        <button onclick="fecharModal('modalConsultor')">
+        <button type="button" onclick="fecharModal('modalSolicitacaoCadastro')">
           X
         </button>
 
       </div>
 
-      <form onsubmit="salvarConsultor(event)">
+      <form id="formSolicitacao">
 
-        <div class="form-grid">
+        <div id="areaSolicitacaoCadastro">
 
-          <input
-            type="text"
-            id="consultorNome"
-            placeholder="Nome do consultor"
-            required
-          />
+          <div class="form-grid">
 
-          <input
-            type="email"
-            id="consultorEmail"
-            placeholder="E-mail"
-            required
-          />
-
-          <input
-            type="text"
-            id="consultorTelefone"
-            placeholder="Telefone"
-            required
-          />
-
-          <select id="consultorCooperativa" required>
-          </select>
-
-          <input
-            type="text"
-            id="consultorRegional"
-            placeholder="Regional responsável"
-            required
-          />
-
-          <textarea
-            id="consultorObservacao"
-            placeholder="Observações"
-            class="textarea-observacao"
-          ></textarea>
-
-        </div>
-
-        <div class="box-zapsign">
-
-          <div>
-            <strong>Contrato padrão ZapSign</strong>
-            <p>Copie o link abaixo e envie para assinatura do consultor.</p>
-          </div>
-
-          <div class="zapsign-actions">
+            <select id="usuarioSolicitacao">
+              <option value="">Selecione o consultor</option>
+            </select>
 
             <input
               type="text"
-              id="linkContratoZap"
+              id="nomeSolicitacao"
+              placeholder="Nome do consultor"
               readonly
-              value="https://app.zapsign.com.br/verificar/doc/4c07c73c-9cbf-4498-89f1-27f95098ac60"
             />
 
-            <button
-              type="button"
-              class="btn-copiar"
-              onclick="copiarLinkContrato()"
-            >
-              Copiar Link
-            </button>
+            <input
+              type="email"
+              id="emailSolicitacao"
+              placeholder="E-mail"
+              readonly
+            />
+
+            <input
+              type="text"
+              id="telefoneSolicitacao"
+              placeholder="Telefone"
+              readonly
+            />
+
+            <select id="cooperativaSolicitacao" required>
+              <option value="">Selecione a cooperativa</option>
+            </select>
+
+            <textarea
+              id="observacaoSolicitacao"
+              placeholder="Observações"
+              class="textarea-observacao"
+            ></textarea>
 
           </div>
 
-        </div>
+          <div class="box-zapsign">
 
-        <button type="submit" id="btnSalvarConsultor">
-          Enviar solicitação de Cadastro
-        </button>
+            <div>
+              <strong>Contrato padrão ZapSign</strong>
+              <p>Copie o link abaixo e envie para assinatura do consultor.</p>
+            </div>
+
+            <div class="zapsign-actions">
+
+              <input
+                type="text"
+                id="linkContratoZap"
+                readonly
+                value="https://app.zapsign.com.br/verificar/doc/4c07c73c-9cbf-4498-89f1-27f95098ac60"
+              />
+
+              <button
+                type="button"
+                class="btn-copiar"
+                onclick="copiarLinkContrato()"
+              >
+                Copiar Link
+              </button>
+
+            </div>
+
+          </div>
+
+          <button type="submit" id="btnSalvarSolicitacao">
+            Enviar Solicitação
+          </button>
+
+        </div>
 
       </form>
 
@@ -749,7 +750,74 @@
 
   </div>
 
+  <!-- LOADING -->
+
+  <div id="loading" class="loading" style="display:none;">
+    <div class="loading-box">
+      Carregando...
+    </div>
+  </div>
+
+  <!-- TOAST -->
+
+  <div id="toast" class="toast"></div>
+
   <script src="app.js"></script>
+
+  <script>
+    function mostrarAba(aba) {
+      const secoes = [
+        "secao-inicio",
+        "areaUsuarios",
+        "areaCooperativas",
+        "secao-central",
+        "areaTickets"
+      ];
+
+      secoes.forEach(id => {
+        const elemento = document.getElementById(id);
+        if (elemento) elemento.style.display = "none";
+      });
+
+      const mapa = {
+        inicio: "secao-inicio",
+        usuarios: "areaUsuarios",
+        cooperativas: "areaCooperativas",
+        central: "secao-central",
+        processos: "areaTickets"
+      };
+
+      const secaoAtiva = document.getElementById(mapa[aba]);
+      if (secaoAtiva) secaoAtiva.style.display = "";
+
+      document.querySelectorAll(".menu-item").forEach(btn => {
+        btn.classList.remove("active");
+      });
+
+      const btnAtivo = document.querySelector(`[data-aba="${aba}"]`);
+      if (btnAtivo) btnAtivo.classList.add("active");
+    }
+
+    function copiarLinkContrato() {
+      const input = document.getElementById("linkContratoZap");
+      if (!input) return;
+
+      input.select();
+      input.setSelectionRange(0, 99999);
+
+      navigator.clipboard.writeText(input.value).then(() => {
+        const toast = document.getElementById("toast");
+        if (toast) {
+          toast.textContent = "Link copiado com sucesso.";
+          toast.className = "toast ativo sucesso";
+
+          setTimeout(() => {
+            toast.classList.remove("ativo");
+          }, 2500);
+        }
+      });
+    }
+  </script>
 
 </body>
 
