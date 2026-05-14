@@ -78,11 +78,28 @@ async function apiPost(payload) {
 async function fazerLogin(event) {
   event.preventDefault();
 
+  const form = event.target;
+  const botaoEntrar = form.querySelector('button[type="submit"]');
+
+  const textoOriginalBotao = botaoEntrar.innerHTML;
+
+  botaoEntrar.disabled = true;
+  botaoEntrar.classList.add('btn-login-loading');
+  botaoEntrar.innerHTML = `
+    <span class="login-spinner"></span>
+    Entrando...
+  `;
+
   const email = document.getElementById('loginEmail').value.trim();
   const senha = document.getElementById('loginSenha').value.trim();
 
   if (!email || !senha) {
     alert('Preencha e-mail e senha.');
+
+    botaoEntrar.disabled = false;
+    botaoEntrar.classList.remove('btn-login-loading');
+    botaoEntrar.innerHTML = textoOriginalBotao;
+
     return;
   }
 
@@ -95,6 +112,11 @@ async function fazerLogin(event) {
 
     if (!resultado.success) {
       alert(resultado.message || 'Erro ao fazer login.');
+
+      botaoEntrar.disabled = false;
+      botaoEntrar.classList.remove('btn-login-loading');
+      botaoEntrar.innerHTML = textoOriginalBotao;
+
       return;
     }
 
@@ -110,9 +132,12 @@ async function fazerLogin(event) {
   } catch (erro) {
     console.error(erro);
     alert('Erro ao realizar login.');
-  }
-}
 
+    botaoEntrar.disabled = false;
+    botaoEntrar.classList.remove('btn-login-loading');
+    botaoEntrar.innerHTML = textoOriginalBotao;
+  }
+   
 function sair() {
   localStorage.removeItem('usuarioLogado');
   usuarioLogado = null;
