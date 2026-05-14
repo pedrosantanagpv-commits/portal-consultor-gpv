@@ -137,7 +137,7 @@ async function fazerLogin(event) {
     botaoEntrar.classList.remove('btn-login-loading');
     botaoEntrar.innerHTML = textoOriginalBotao;
   }
-   
+ }  
 function sair() {
   localStorage.removeItem('usuarioLogado');
   usuarioLogado = null;
