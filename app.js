@@ -137,7 +137,8 @@ async function fazerLogin(event) {
     botaoEntrar.classList.remove('btn-login-loading');
     botaoEntrar.innerHTML = textoOriginalBotao;
   }
- }  
+}
+
 function sair() {
   localStorage.removeItem('usuarioLogado');
   usuarioLogado = null;
@@ -1356,11 +1357,7 @@ function abrirModalConteudo(conteudo) {
 
   const imagemCapa = String(conteudo.imagem_capa || '').trim();
 
-  if (
-    imagemCapa &&
-    imagemCapa !== 'link_da_imagem' &&
-    imagemCapa.startsWith('http')
-  ) {
+  if (imagemCapa && imagemEhValida(imagemCapa)) {
     imagem.src = imagemCapa;
     imagemBox.style.display = 'block';
   } else {
@@ -1461,10 +1458,7 @@ function renderizarBibliotecaConteudos(lista) {
 
 function criarCardBiblioteca(item) {
   const imagem = String(item.imagem_capa || '').trim();
-  const temImagem =
-    imagem &&
-    imagem !== 'link_da_imagem' &&
-    imagem.startsWith('http');
+  const temImagem = imagem && imagemEhValida(imagem);
 
   const imagemHtml = temImagem
     ? `
@@ -1516,6 +1510,20 @@ function criarCardBiblioteca(item) {
   `;
 }
 
+function imagemEhValida(caminho) {
+  const valor = String(caminho || '').trim();
+
+  if (!valor) return false;
+
+  if (valor === 'link_da_imagem') return false;
+
+  return (
+    valor.startsWith('http://') ||
+    valor.startsWith('https://') ||
+    valor.startsWith('assets/')
+  );
+}
+
 function obterIconeTipo(tipo) {
   const tipoTexto = String(tipo || '').toUpperCase();
 
@@ -1525,6 +1533,7 @@ function obterIconeTipo(tipo) {
   if (tipoTexto === 'WHATSAPP') return '☏';
   if (tipoTexto === 'IMAGEM') return 'IMG';
   if (tipoTexto === 'APP') return 'APP';
+  if (tipoTexto === 'APLICATIVO') return '↗';
 
   return '↗';
 }
