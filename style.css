@@ -2360,3 +2360,367 @@ tbody td small {
     padding: 16px;
   }
 }
+/* =========================
+   TELAS ADMINISTRATIVAS PREMIUM
+   Usuários / Cooperativas / Processos
+========================= */
+
+/* CABEÇALHO DAS TELAS ADMIN */
+
+#secao-usuarios .section-header,
+#secao-cooperativas .section-header,
+#secao-processos .section-header {
+  margin-bottom: 26px;
+}
+
+#secao-usuarios .section-header h1,
+#secao-cooperativas .section-header h1,
+#secao-processos .section-header h1 {
+  font-size: 34px;
+  letter-spacing: -1.1px;
+}
+
+#secao-usuarios .section-header p,
+#secao-cooperativas .section-header p,
+#secao-processos .section-header p {
+  color: #cfcfcf;
+}
+
+/* BOTÕES DE CABEÇALHO */
+
+#secao-usuarios .section-header button,
+#secao-cooperativas .section-header button {
+  min-width: 150px;
+  height: 52px;
+  border-radius: 15px;
+  font-size: 14px;
+}
+
+/* MINI DASHBOARD USUÁRIOS */
+
+#secao-usuarios .mini-dashboard {
+  gap: 16px;
+  margin-bottom: 26px;
+}
+
+#secao-usuarios .mini-card {
+  position: relative;
+  min-height: 108px;
+  padding: 22px;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+#secao-usuarios .mini-card::before {
+  content: "";
+  position: absolute;
+  right: -28px;
+  top: -28px;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: rgba(255, 204, 0, 0.075);
+  pointer-events: none;
+}
+
+#secao-usuarios .mini-card span {
+  position: relative;
+  z-index: 2;
+  font-size: 34px;
+  line-height: 1;
+  color: #ffcc00;
+}
+
+#secao-usuarios .mini-card small {
+  position: relative;
+  z-index: 2;
+  color: #ffffff;
+  font-weight: 650;
+}
+
+/* FILTROS ADMIN */
+
+#secao-usuarios .filtros,
+#secao-processos .filtros {
+  padding: 18px;
+  margin-bottom: 24px;
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
+    #111111;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+#secao-usuarios .filtros input,
+#secao-usuarios .filtros select,
+#secao-processos .filtros select {
+  height: 50px;
+  border-radius: 14px;
+  min-width: 220px;
+  font-weight: 600;
+}
+
+#secao-usuarios .filtros button,
+#secao-processos .filtros button {
+  height: 50px;
+  border-radius: 14px;
+  min-width: 145px;
+}
+
+/* SELECT MAIS LIMPO */
+
+select {
+  cursor: pointer;
+}
+
+select option {
+  background: #111111;
+  color: #ffffff;
+}
+
+/* TABELAS ADMIN */
+
+#secao-usuarios .table-wrapper,
+#secao-cooperativas .table-wrapper,
+#secao-processos .table-wrapper {
+  border-radius: 24px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.012)),
+    #111111;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  box-shadow:
+    0 24px 55px rgba(0, 0, 0, 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+#secao-usuarios table,
+#secao-cooperativas table,
+#secao-processos table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+#secao-usuarios thead,
+#secao-cooperativas thead,
+#secao-processos thead {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025));
+}
+
+#secao-usuarios thead th,
+#secao-cooperativas thead th,
+#secao-processos thead th {
+  height: 62px;
+  padding: 18px 20px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+}
+
+#secao-usuarios tbody td,
+#secao-cooperativas tbody td,
+#secao-processos tbody td {
+  padding: 20px;
+  vertical-align: middle;
+  color: #f1f1f1;
+}
+
+#secao-usuarios tbody tr,
+#secao-cooperativas tbody tr,
+#secao-processos tbody tr {
+  background: rgba(255, 255, 255, 0.006);
+}
+
+#secao-usuarios tbody tr:hover,
+#secao-cooperativas tbody tr:hover,
+#secao-processos tbody tr:hover {
+  background:
+    linear-gradient(90deg, rgba(255, 204, 0, 0.055), transparent 72%);
+}
+
+/* TEXTO DENTRO DA TABELA */
+
+tbody td strong {
+  font-size: 15px;
+  color: #ffffff;
+  font-weight: 850;
+}
+
+tbody td small {
+  display: block;
+  margin-top: 5px;
+  color: #9e9e9e;
+  font-size: 12px;
+}
+
+/* PERFIS / TAGS */
+
+.tag {
+  min-height: 32px;
+  padding: 8px 13px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: 0.1px;
+  font-weight: 850;
+  background:
+    linear-gradient(180deg, rgba(255, 204, 0, 0.16), rgba(255, 204, 0, 0.08));
+}
+
+/* STATUS */
+
+.status {
+  height: 36px;
+  min-width: 98px;
+  padding: 0 14px;
+  font-size: 11px;
+  letter-spacing: 0.15px;
+  font-weight: 900;
+}
+
+.status.ativo {
+  background:
+    linear-gradient(180deg, rgba(0, 255, 140, 0.16), rgba(0, 255, 140, 0.08));
+}
+
+.status.inativo {
+  background:
+    linear-gradient(180deg, rgba(255, 70, 70, 0.16), rgba(255, 70, 70, 0.08));
+}
+
+.status.pendente {
+  background:
+    linear-gradient(180deg, rgba(255, 204, 0, 0.16), rgba(255, 204, 0, 0.08));
+}
+
+/* AÇÕES DAS TABELAS */
+
+.acoes {
+  gap: 9px;
+}
+
+.acoes button {
+  height: 38px;
+  padding: 0 15px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 850;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.018)),
+    #232323;
+}
+
+.acoes .danger {
+  background:
+    linear-gradient(180deg, #ff5c5c, #ff3f3f);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+.acoes .danger:hover {
+  background:
+    linear-gradient(180deg, rgba(255, 92, 92, 0.24), rgba(255, 63, 63, 0.14));
+}
+
+/* USUÁRIO PROTEGIDO */
+
+.acao-protegida {
+  min-height: 38px;
+  padding: 0 15px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 204, 0, 0.15), rgba(255, 204, 0, 0.08));
+  color: #ffcc00;
+  border: 1px solid rgba(255, 204, 0, 0.16);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+/* PROCESSOS ADMINISTRATIVOS */
+
+#secao-processos .table-wrapper td:first-child strong {
+  margin-bottom: 6px;
+}
+
+#secao-processos .acoes {
+  min-width: 260px;
+}
+
+#secao-processos .acoes button {
+  margin-bottom: 4px;
+}
+
+/* EMPTY STATE */
+
+.empty-table {
+  padding: 54px 24px !important;
+  color: #a8a8a8;
+  font-weight: 650;
+  background:
+    radial-gradient(circle at center, rgba(255, 204, 0, 0.035), transparent 30%);
+}
+
+/* MODAIS ADMIN */
+
+#modalUsuario .modal-content,
+#modalCooperativa .modal-content,
+#modalConsultor .modal-content {
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 204, 0, 0.055), transparent 30%),
+    linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.012)),
+    #111111;
+}
+
+#modalUsuario .modal-header h2,
+#modalCooperativa .modal-header h2,
+#modalConsultor .modal-header h2 {
+  font-size: 26px;
+  letter-spacing: -0.7px;
+}
+
+.modal-header button {
+  transition: 0.2s ease;
+}
+
+.modal-header button:hover {
+  background: rgba(255, 70, 70, 0.18);
+  color: #ff7070;
+}
+
+/* RESPONSIVO ADMIN */
+
+@media (max-width: 900px) {
+  #secao-usuarios .filtros,
+  #secao-processos .filtros {
+    padding: 14px;
+  }
+
+  #secao-usuarios .filtros input,
+  #secao-usuarios .filtros select,
+  #secao-processos .filtros select,
+  #secao-usuarios .filtros button,
+  #secao-processos .filtros button {
+    width: 100%;
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 700px) {
+  #secao-usuarios .section-header h1,
+  #secao-cooperativas .section-header h1,
+  #secao-processos .section-header h1 {
+    font-size: 28px;
+  }
+
+  #secao-usuarios tbody td,
+  #secao-cooperativas tbody td,
+  #secao-processos tbody td {
+    padding: 16px;
+  }
+}
