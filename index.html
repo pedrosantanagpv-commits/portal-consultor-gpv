@@ -16,15 +16,42 @@
 
   <div id="loginPage" class="login-page">
 
+    <div class="login-bg-symbol"></div>
+
     <form class="login-box" onsubmit="fazerLogin(event)">
 
-      <img src="GPV%20Associados.png" class="logo-login logo-login-premium" alt="Logo GPV" />
+      <img src="GPV%20Associados.png" class="logo-login" alt="Logo GPV" />
 
       <h1>Portal Consultor</h1>
 
-      <input type="email" id="loginEmail" placeholder="E-mail" required />
+      <p class="login-subtitle">
+        Acesso interno para consultores<br />
+        e equipe operacional
+      </p>
 
-      <input type="password" id="loginSenha" placeholder="Senha" required />
+      <div class="login-input-group">
+        <span class="login-input-icon">✉</span>
+
+        <input
+          type="email"
+          id="loginEmail"
+          placeholder="E-mail"
+          required
+        />
+      </div>
+
+      <div class="login-input-group">
+        <span class="login-input-icon">🔒</span>
+
+        <input
+          type="password"
+          id="loginSenha"
+          placeholder="Senha"
+          required
+        />
+
+        <span class="login-eye-icon">◉</span>
+      </div>
 
       <button type="submit">
         Entrar
