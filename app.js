@@ -1,1810 +1,1804 @@
-/* =========================================================
-   PORTAL CONSULTOR GPV — APP.JS
-   Compatível com o Google Apps Script atual
+/* =========================
+   CONFIG
+========================= */
 
-   Regras:
-   - CONSULTOR: acessa a Central, não solicita cadastro.
-   - REGIONAL: vê consultores da própria cooperativa e solicita cadastro.
-   - ADMINISTRATIVO: vê tudo, solicita, altera status e exclui tickets.
-   - SUPER_ADMIN: acesso total.
-========================================================= */
-
-const API_URL = "/api/proxy";
+const API_URL = '/api/proxy';
 
 let usuarioLogado = null;
-let usuarios = [];
-let cooperativas = [];
-let tickets = [];
-let conteudosGerais = [];
+let usuariosCache = [];
+let cooperativasCache = [];
+let consultoresCache = [];
+let conteudosCache = [];
+let bibliotecaConteudosAtual = [];
 
-const PERFIS = {
-  CONSULTOR: "CONSULTOR",
-  REGIONAL: "REGIONAL",
-  ADMINISTRATIVO: "ADMINISTRATIVO",
-  SUPER_ADMIN: "SUPER_ADMIN",
-};
+const LINK_CONTRATO_ZAPSIGN =
+  'https://app.zapsign.com.br/verificar/doc/4c07c73c-9cbf-4498-89f1-27f95098ac60';
 
-const STATUS_USUARIO = {
-  ATIVO: "ATIVO",
-  INATIVO: "INATIVO",
-};
+/* =========================
+   INIT
+========================= */
 
-const STATUS_TICKET = {
-  PENDENTE: "PENDENTE",
-  CADASTRO_REALIZADO: "CADASTRO REALIZADO",
-  RECUSADO: "RECUSADO",
-};
+document.addEventListener('DOMContentLoaded', () => {
+  const usuarioSalvo = localStorage.getItem('usuarioLogado');
 
-document.addEventListener("DOMContentLoaded", () => {
-  iniciarApp();
-});
+  criarModalConteudoDinamico();
 
-/* =========================================================
-   INICIALIZAÇÃO
-========================================================= */
-
-function iniciarApp() {
-  carregarSessaoSalva();
-  configurarEventosGlobais();
-
-  if (usuarioLogado) {
+  if (usuarioSalvo) {
+    usuarioLogado = JSON.parse(usuarioSalvo);
     abrirSistema();
   } else {
-    mostrarTelaLogin();
+    mostrarLogin();
   }
+});
+
+/* =========================
+   UI BASE
+========================= */
+
+function mostrarLogin() {
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('appPage').style.display = 'none';
 }
 
-function configurarEventosGlobais() {
-  const formLogin = document.getElementById("formLogin");
-  if (formLogin) {
-    formLogin.addEventListener("submit", fazerLogin);
-  }
+function abrirSistema() {
+  document.getElementById('loginPage').style.display = 'none';
+  document.getElementById('appPage').style.display = 'flex';
 
-  const btnSair = document.getElementById("btnSair");
-  if (btnSair) {
-    btnSair.addEventListener("click", sair);
-  }
+  document.getElementById('usuarioTopo').innerText =
+    `${usuarioLogado.nome} | ${usuarioLogado.perfil}`;
 
-  const btnAtualizarDados = document.getElementById("btnAtualizarDados");
-  if (btnAtualizarDados) {
-    btnAtualizarDados.addEventListener("click", carregarDadosIniciais);
-  }
+  aplicarPermissoesVisuais();
 
-  const formUsuario = document.getElementById("formUsuario");
-  if (formUsuario) {
-    formUsuario.addEventListener("submit", salvarUsuario);
-  }
-
-  const btnNovoUsuario = document.getElementById("btnNovoUsuario");
-  if (btnNovoUsuario) {
-    btnNovoUsuario.addEventListener("click", abrirFormularioNovoUsuario);
-  }
-
-  const btnFecharModalUsuario = document.getElementById("btnFecharModalUsuario");
-  if (btnFecharModalUsuario) {
-    btnFecharModalUsuario.addEventListener("click", () => fecharModal("modalUsuario"));
-  }
-
-  const formCooperativa = document.getElementById("formCooperativa");
-  if (formCooperativa) {
-    formCooperativa.addEventListener("submit", salvarCooperativa);
-  }
-
-  const btnNovaCooperativa = document.getElementById("btnNovaCooperativa");
-  if (btnNovaCooperativa) {
-    btnNovaCooperativa.addEventListener("click", abrirFormularioNovaCooperativa);
-  }
-
-  const formSolicitacao = document.getElementById("formSolicitacao");
-  if (formSolicitacao) {
-    formSolicitacao.addEventListener("submit", salvarSolicitacao);
-  }
-
-  const selectCooperativaSolicitacao = document.getElementById("cooperativaSolicitacao");
-  if (selectCooperativaSolicitacao) {
-    selectCooperativaSolicitacao.addEventListener("change", carregarUsuariosDaCooperativaSelecionada);
-  }
-
-  const filtroBuscaUsuario = document.getElementById("filtroBuscaUsuario");
-  if (filtroBuscaUsuario) {
-    filtroBuscaUsuario.addEventListener("input", renderizarUsuarios);
-  }
-
-  const filtroStatusUsuario = document.getElementById("filtroStatusUsuario");
-  if (filtroStatusUsuario) {
-    filtroStatusUsuario.addEventListener("change", renderizarUsuarios);
-  }
-
-  const filtroPerfilUsuario = document.getElementById("filtroPerfilUsuario");
-  if (filtroPerfilUsuario) {
-    filtroPerfilUsuario.addEventListener("change", renderizarUsuarios);
-  }
-
-  const filtroBuscaTicket = document.getElementById("filtroBuscaTicket");
-  if (filtroBuscaTicket) {
-    filtroBuscaTicket.addEventListener("input", renderizarTickets);
-  }
-
-  const filtroStatusTicket = document.getElementById("filtroStatusTicket");
-  if (filtroStatusTicket) {
-    filtroStatusTicket.addEventListener("change", renderizarTickets);
-  }
+  carregarDashboard();
+  carregarCooperativas();
+  carregarPalavraChave();
+  carregarConteudosGerais();
 }
 
-/* =========================================================
+/* =========================
    API
-========================================================= */
+========================= */
 
-async function chamarApi(action, dados = {}) {
-  try {
-    console.log("CHAMANDO API:", {
-      url: API_URL,
-      action,
-      dados,
-    });
+async function apiPost(payload) {
+  const resposta = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
 
-    const resposta = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        action,
-        ...dados,
-      }),
-    });
-
-    console.log("STATUS DA RESPOSTA:", resposta.status);
-
-    const texto = await resposta.text();
-
-    console.log("TEXTO BRUTO DA API:", texto);
-
-    let json;
-
-    try {
-      json = JSON.parse(texto);
-    } catch (erroJson) {
-      console.error("A resposta não é JSON válido:", texto);
-      throw new Error("O servidor não retornou um JSON válido.");
-    }
-
-    console.log("JSON DA API:", json);
-
-    if (!json || json.success === false || json.status === "erro" || json.status === "error") {
-      throw new Error(json?.message || json?.mensagem || "Erro ao processar solicitação.");
-    }
-
-    return json;
-  } catch (erro) {
-    console.error("Erro na API:", erro);
-    mostrarToast(erro.message || "Erro de conexão com o servidor.", "erro");
-    throw erro;
-  }
+  return await resposta.json();
 }
 
-/* =========================================================
-   LOGIN / SESSÃO
-========================================================= */
+/* =========================
+   LOGIN
+========================= */
 
 async function fazerLogin(event) {
   event.preventDefault();
 
-  console.log("FUNÇÃO fazerLogin FOI CHAMADA");
+  const form = event.target;
+  const botaoEntrar = form.querySelector('button[type="submit"]');
 
-  const email = pegarValor("email") || pegarValor("loginEmail");
-  const senha = pegarValor("senha") || pegarValor("loginSenha");
+  const textoOriginalBotao = botaoEntrar.innerHTML;
+
+  botaoEntrar.disabled = true;
+  botaoEntrar.classList.add('btn-login-loading');
+  botaoEntrar.innerHTML = `
+    <span class="login-spinner"></span>
+    Entrando...
+  `;
+
+  const email = document.getElementById('loginEmail').value.trim();
+  const senha = document.getElementById('loginSenha').value.trim();
 
   if (!email || !senha) {
-    mostrarToast("Informe e-mail e senha.", "erro");
+    alert('Preencha e-mail e senha.');
+
+    botaoEntrar.disabled = false;
+    botaoEntrar.classList.remove('btn-login-loading');
+    botaoEntrar.innerHTML = textoOriginalBotao;
+
     return;
   }
 
   try {
-    bloquearBotao("btnLogin", true, "Entrando...");
-
-    const resposta = await chamarApi("login", {
+    const resultado = await apiPost({
+      action: 'login',
       email,
-      senha,
+      senha
     });
 
-    console.log("RESPOSTA LOGIN:", resposta);
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao fazer login.');
 
-    usuarioLogado = normalizarUsuario(resposta.usuario || resposta.dados || resposta.data || resposta);
+      botaoEntrar.disabled = false;
+      botaoEntrar.classList.remove('btn-login-loading');
+      botaoEntrar.innerHTML = textoOriginalBotao;
 
-    if (!usuarioLogado || !usuarioLogado.email) {
-      console.error("Usuário não encontrado na resposta:", resposta);
-      mostrarToast("Não foi possível validar o usuário.", "erro");
       return;
     }
 
-    if (normalizarStatus(usuarioLogado.status) !== STATUS_USUARIO.ATIVO) {
-      mostrarToast("Usuário inativo. Procure o administrativo.", "erro");
-      return;
-    }
+    usuarioLogado = resultado.usuario;
 
-    localStorage.setItem("usuarioLogadoGPV", JSON.stringify(usuarioLogado));
+    localStorage.setItem(
+      'usuarioLogado',
+      JSON.stringify(usuarioLogado)
+    );
 
     abrirSistema();
+
   } catch (erro) {
     console.error(erro);
-  } finally {
-    bloquearBotao("btnLogin", false, "Entrar");
-  }
-}
+    alert('Erro ao realizar login.');
 
-function carregarSessaoSalva() {
-  const dados = localStorage.getItem("usuarioLogadoGPV");
-
-  if (!dados) return;
-
-  try {
-    usuarioLogado = JSON.parse(dados);
-  } catch {
-    usuarioLogado = null;
-    localStorage.removeItem("usuarioLogadoGPV");
+    botaoEntrar.disabled = false;
+    botaoEntrar.classList.remove('btn-login-loading');
+    botaoEntrar.innerHTML = textoOriginalBotao;
   }
 }
 
 function sair() {
-  localStorage.removeItem("usuarioLogadoGPV");
-
+  localStorage.removeItem('usuarioLogado');
   usuarioLogado = null;
-  usuarios = [];
-  cooperativas = [];
-  tickets = [];
-  conteudosGerais = [];
-
-  mostrarTelaLogin();
+  mostrarLogin();
 }
 
-function abrirSistema() {
-  mostrarTelaSistema();
-  aplicarPermissoesVisuais();
-  preencherDadosUsuarioLogado();
-  carregarDadosIniciais();
-}
-
-function mostrarTelaLogin() {
-  mostrarElemento("telaLogin");
-  ocultarElemento("app");
-  ocultarElemento("dashboard");
-}
-
-function mostrarTelaSistema() {
-  ocultarElemento("telaLogin");
-  mostrarElemento("app");
-  mostrarElemento("dashboard");
-}
-
-function preencherDadosUsuarioLogado() {
-  preencherTexto("nomeUsuarioLogado", usuarioLogado?.nome || "Usuário");
-  preencherTexto("perfilUsuarioLogado", formatarPerfil(usuarioLogado?.perfil || ""));
-
-  const cooperativaNome =
-    obterNomeCooperativa(usuarioLogado?.cooperativa_id) ||
-    usuarioLogado?.cooperativa ||
-    "Sem cooperativa";
-
-  preencherTexto("cooperativaUsuarioLogado", cooperativaNome);
-}
-
-/* =========================================================
-   PERFIS / PERMISSÕES
-========================================================= */
-
-function perfilAtual() {
-  return normalizarPerfil(usuarioLogado?.perfil || "");
-}
-
-function isConsultor() {
-  return perfilAtual() === PERFIS.CONSULTOR;
-}
-
-function isRegional() {
-  return perfilAtual() === PERFIS.REGIONAL;
-}
-
-function isAdministrativo() {
-  return perfilAtual() === PERFIS.ADMINISTRATIVO;
-}
-
-function isSuperAdmin() {
-  return perfilAtual() === PERFIS.SUPER_ADMIN;
-}
-
-function podeVerTudo() {
-  return isAdministrativo() || isSuperAdmin();
-}
-
-function podeGerenciarUsuarios() {
-  return podeVerTudo();
-}
-
-function podeGerenciarCooperativas() {
-  return podeVerTudo();
-}
-
-function podeAlterarStatusUsuario() {
-  return podeVerTudo();
-}
-
-function podeVerAreaUsuarios() {
-  return podeVerTudo() || isRegional();
-}
-
-function podeVerAreaTickets() {
-  return podeVerTudo() || isRegional();
-}
-
-function podeAlterarStatusTicket() {
-  return podeVerTudo();
-}
-
-function podeExcluirTicket() {
-  return podeVerTudo();
-}
-
-function podeSolicitarCadastroConsultor() {
-  return isRegional() || isAdministrativo() || isSuperAdmin();
-}
-
-function podeVerCooperativa(cooperativaId) {
-  if (podeVerTudo()) return true;
-
-  if (isRegional() || isConsultor()) {
-    return String(cooperativaId) === String(usuarioLogado?.cooperativa_id);
-  }
-
-  return false;
-}
-
-function podeSolicitarParaUsuario(usuario) {
-  if (!usuario) return false;
-
-  if (!podeSolicitarCadastroConsultor()) return false;
-
-  if (podeVerTudo()) {
-    return normalizarPerfil(usuario.perfil) === PERFIS.CONSULTOR;
-  }
-
-  if (isRegional()) {
-    return (
-      String(usuario.cooperativa_id) === String(usuarioLogado?.cooperativa_id) &&
-      normalizarPerfil(usuario.perfil) === PERFIS.CONSULTOR
-    );
-  }
-
-  return false;
-}
+/* =========================
+   PERMISSÕES / HIERARQUIA
+========================= */
 
 function aplicarPermissoesVisuais() {
-  const perfil = perfilAtual();
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
 
-  document.body.setAttribute("data-perfil", perfil);
+  const btnCadastro = document.getElementById('btnCadastroConsultor');
+  const menuProcessos = document.querySelector('[data-aba="processos"]');
+  const menuUsuarios = document.querySelector('[data-aba="usuarios"]');
+  const menuCooperativas = document.querySelector('[data-aba="cooperativas"]');
 
-  controlarElementoPorPermissao("areaUsuarios", podeVerAreaUsuarios());
-  controlarElementoPorPermissao("areaCooperativas", podeGerenciarCooperativas());
-  controlarElementoPorPermissao("areaTickets", podeVerAreaTickets());
-  controlarElementoPorPermissao("areaSolicitacaoCadastro", podeSolicitarCadastroConsultor());
-
-  controlarElementoPorPermissao("menuUsuarios", podeVerAreaUsuarios());
-  controlarElementoPorPermissao("menuCooperativas", podeGerenciarCooperativas());
-  controlarElementoPorPermissao("menuProcessos", podeVerAreaTickets());
-
-  controlarElementoPorPermissao("btnNovoUsuario", podeGerenciarUsuarios());
-  controlarElementoPorPermissao("btnNovaCooperativa", podeGerenciarCooperativas());
-  controlarElementoPorPermissao("btnAbrirSolicitacaoCadastro", podeSolicitarCadastroConsultor());
-
-  controlarElementoPorPermissao("filtroPerfilUsuario", podeVerTudo());
-
-  const tituloSolicitacao = document.getElementById("tituloSolicitacao");
-  if (tituloSolicitacao) {
-    tituloSolicitacao.textContent = "Solicitar Cadastro de Consultor";
-  }
-
-  const textoAjudaSolicitacao = document.getElementById("textoAjudaSolicitacao");
-  if (textoAjudaSolicitacao) {
-    if (isRegional()) {
-      textoAjudaSolicitacao.textContent = "Você pode solicitar cadastro apenas para consultores da sua cooperativa.";
-    } else if (podeVerTudo()) {
-      textoAjudaSolicitacao.textContent = "Você pode solicitar cadastro para consultores de qualquer cooperativa.";
-    }
-  }
-}
-
-/* =========================================================
-   CARREGAMENTO DE DADOS
-========================================================= */
-
-async function carregarDadosIniciais() {
-  try {
-    mostrarLoading(true);
-
-    await carregarCooperativas();
-    await carregarUsuarios();
-    await carregarTickets();
-    await carregarPalavraChave();
-
-    configurarFormularioSolicitacao();
-    renderizarDashboard();
-    renderizarUsuarios();
-    renderizarCooperativas();
-    renderizarTickets();
-    preencherDadosUsuarioLogado();
-  } catch (erro) {
-    console.error(erro);
-  } finally {
-    mostrarLoading(false);
-  }
-}
-
-async function carregarCooperativas() {
-  const resposta = await chamarApi("listarCooperativas");
-  const lista = resposta.cooperativas || resposta.dados || [];
-
-  cooperativas = lista.map(normalizarCooperativa);
-}
-
-async function carregarUsuarios() {
-  const resposta = await chamarApi("listarUsuarios");
-  const lista = resposta.usuarios || resposta.dados || [];
-
-  usuarios = lista.map(normalizarUsuario);
-}
-
-async function carregarTickets() {
-  if (isConsultor()) {
-    tickets = [];
+  if (perfil === 'CONSULTOR') {
+    if (btnCadastro) btnCadastro.style.display = 'none';
+    if (menuProcessos) menuProcessos.style.display = 'none';
+    if (menuUsuarios) menuUsuarios.style.display = 'none';
+    if (menuCooperativas) menuCooperativas.style.display = 'none';
     return;
   }
 
-  const resposta = await chamarApi("listarConsultores", {
-    perfil: usuarioLogado?.perfil || "",
-    cooperativa_id: usuarioLogado?.cooperativa_id || "",
-    usuario_logado_id: usuarioLogado?.id || "",
+  if (perfil === 'REGIONAL') {
+    if (menuUsuarios) menuUsuarios.style.display = 'none';
+    if (menuCooperativas) menuCooperativas.style.display = 'none';
+  }
+
+  if (btnCadastro) {
+    btnCadastro.style.display = 'block';
+    btnCadastro.innerText = 'Solicitar Cadastro de Consultor';
+  }
+
+  if (menuProcessos) {
+    menuProcessos.style.display = 'block';
+  }
+}
+
+function usuarioEhSuperAdmin() {
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+  return perfil === 'SUPER_ADMIN';
+}
+
+function usuarioEhAdmin() {
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+
+  return (
+    perfil === 'SUPER_ADMIN' ||
+    perfil === 'ADMINISTRATIVO'
+  );
+}
+
+function usuarioEhAdministrativo() {
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+  return perfil === 'ADMINISTRATIVO';
+}
+
+function usuarioEhRegional() {
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+  return perfil === 'REGIONAL';
+}
+
+function podeSolicitarCadastroConsultor() {
+  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+
+  return (
+    perfil === 'SUPER_ADMIN' ||
+    perfil === 'ADMINISTRATIVO' ||
+    perfil === 'REGIONAL'
+  );
+}
+
+function podeGerenciarUsuarios() {
+  return usuarioEhSuperAdmin() || usuarioEhAdministrativo();
+}
+
+function mesmoUsuario(id) {
+  return String(usuarioLogado?.id || '') === String(id || '');
+}
+
+function podeEditarUsuarioAlvo(usuarioAlvo) {
+  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfilAlvo = String(usuarioAlvo?.perfil || '').toUpperCase();
+
+  if (!podeGerenciarUsuarios()) return false;
+
+  if (perfilLogado === 'SUPER_ADMIN') return true;
+
+  if (perfilLogado === 'ADMINISTRATIVO') {
+    if (perfilAlvo === 'SUPER_ADMIN') return false;
+    return true;
+  }
+
+  return false;
+}
+
+function podeAlterarStatusUsuarioAlvo(usuarioAlvo) {
+  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfilAlvo = String(usuarioAlvo?.perfil || '').toUpperCase();
+
+  if (!podeGerenciarUsuarios()) return false;
+  if (mesmoUsuario(usuarioAlvo?.id)) return false;
+
+  if (perfilLogado === 'SUPER_ADMIN') return true;
+
+  if (perfilLogado === 'ADMINISTRATIVO') {
+    if (perfilAlvo === 'SUPER_ADMIN') return false;
+    return true;
+  }
+
+  return false;
+}
+
+function podeExcluirUsuarioAlvo(usuarioAlvo) {
+  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfilAlvo = String(usuarioAlvo?.perfil || '').toUpperCase();
+
+  if (!podeGerenciarUsuarios()) return false;
+  if (mesmoUsuario(usuarioAlvo?.id)) return false;
+
+  if (perfilLogado === 'SUPER_ADMIN') return true;
+
+  if (perfilLogado === 'ADMINISTRATIVO') {
+    if (perfilAlvo === 'SUPER_ADMIN') return false;
+    if (perfilAlvo === 'ADMINISTRATIVO') return false;
+    return true;
+  }
+
+  return false;
+}
+
+function podeCriarPerfil(perfilNovo) {
+  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfil = String(perfilNovo || '').toUpperCase();
+
+  if (perfilLogado === 'SUPER_ADMIN') return true;
+
+  if (perfilLogado === 'ADMINISTRATIVO') {
+    if (perfil === 'SUPER_ADMIN') return false;
+    return true;
+  }
+
+  return false;
+}
+
+function obterMensagemProtecaoUsuario(usuarioAlvo) {
+  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfilAlvo = String(usuarioAlvo?.perfil || '').toUpperCase();
+
+  if (perfilLogado === 'SUPER_ADMIN') return '';
+
+  if (perfilLogado === 'ADMINISTRATIVO' && perfilAlvo === 'SUPER_ADMIN') {
+    return 'Usuário protegido';
+  }
+
+  if (perfilLogado === 'ADMINISTRATIVO' && mesmoUsuario(usuarioAlvo?.id)) {
+    return 'Seu usuário';
+  }
+
+  if (perfilLogado === 'ADMINISTRATIVO' && perfilAlvo === 'ADMINISTRATIVO') {
+    return 'Administrativo';
+  }
+
+  return '';
+}
+
+function ajustarOpcoesPerfilUsuario(perfilAtual = '') {
+  const select = document.getElementById('usuarioPerfil');
+  if (!select) return;
+
+  Array.from(select.options).forEach(option => {
+    option.disabled = false;
+
+    if (usuarioEhAdministrativo() && option.value === 'SUPER_ADMIN') {
+      option.disabled = true;
+    }
   });
 
-  const lista = resposta.consultores || resposta.tickets || resposta.dados || [];
-
-  tickets = lista.map(normalizarTicket);
+  if (usuarioEhAdministrativo() && select.value === 'SUPER_ADMIN') {
+    select.value = perfilAtual && perfilAtual !== 'SUPER_ADMIN'
+      ? perfilAtual
+      : 'CONSULTOR';
+  }
 }
 
-async function carregarPalavraChave() {
+/* =========================
+   MENU
+========================= */
+
+function mostrarAba(aba) {
+  if (aba === 'usuarios' && !podeGerenciarUsuarios()) {
+    alert('Você não tem permissão para acessar usuários.');
+    return;
+  }
+
+  if (aba === 'cooperativas' && !podeGerenciarUsuarios()) {
+    alert('Você não tem permissão para acessar cooperativas.');
+    return;
+  }
+
+  document.querySelectorAll('.section').forEach(secao => {
+    secao.style.display = 'none';
+  });
+
+  document.querySelectorAll('.menu-item').forEach(item => {
+    item.classList.remove('active');
+  });
+
+  const secao = document.getElementById(`secao-${aba}`);
+  if (secao) secao.style.display = 'block';
+
+  const menu = document.querySelector(`[data-aba="${aba}"]`);
+  if (menu) menu.classList.add('active');
+
+  if (aba === 'inicio') carregarDashboard();
+
+  if (aba === 'usuarios') {
+    carregarUsuarios();
+    carregarCooperativas();
+  }
+
+  if (aba === 'cooperativas') carregarCooperativas();
+
+  if (aba === 'central') {
+    carregarPalavraChave();
+    carregarConteudosGerais();
+  }
+
+  if (aba === 'processos') carregarConsultores();
+}
+
+/* =========================
+   DASHBOARD
+========================= */
+
+async function carregarDashboard() {
   try {
-    const resposta = await chamarApi("buscarPalavraChave");
-    preencherTexto("palavraChaveDia", resposta.palavra || "---");
+    const resultado = await apiPost({
+      action: 'dashboard'
+    });
+
+    if (!resultado.success) return;
+
+    const dados = resultado.dashboard;
+
+    setTexto('dashUsuarios', dados.totalUsuarios || 0);
+    setTexto('dashAtivos', dados.usuariosAtivos || 0);
+    setTexto('dashConsultores', dados.consultores || 0);
+    setTexto('dashRegionais', dados.regionais || 0);
+    setTexto('dashCooperativas', dados.cooperativas || 0);
+
   } catch (erro) {
     console.error(erro);
-    preencherTexto("palavraChaveDia", "---");
   }
 }
 
-/* =========================================================
-   DASHBOARD
-========================================================= */
-
-function renderizarDashboard() {
-  const ticketsPermitidos = filtrarTicketsPorPermissao(tickets);
-  const usuariosPermitidos = filtrarUsuariosPorPermissao(usuarios);
-
-  const totalTickets = ticketsPermitidos.length;
-  const pendentes = ticketsPermitidos.filter(t => normalizarStatus(t.status) === STATUS_TICKET.PENDENTE).length;
-  const realizados = ticketsPermitidos.filter(t => normalizarStatus(t.status) === STATUS_TICKET.CADASTRO_REALIZADO).length;
-  const recusados = ticketsPermitidos.filter(t => normalizarStatus(t.status) === STATUS_TICKET.RECUSADO).length;
-
-  const ativos = usuariosPermitidos.filter(u => normalizarStatus(u.status) === STATUS_USUARIO.ATIVO).length;
-  const inativos = usuariosPermitidos.filter(u => normalizarStatus(u.status) === STATUS_USUARIO.INATIVO).length;
-
-  preencherTexto("cardTotalTickets", totalTickets);
-  preencherTexto("cardTicketsPendentes", pendentes);
-  preencherTexto("cardTicketsRealizados", realizados);
-  preencherTexto("cardTicketsRecusados", recusados);
-
-  preencherTexto("cardUsuariosAtivos", ativos);
-  preencherTexto("cardUsuariosInativos", inativos);
-
-  preencherTexto("dashUsuarios", usuariosPermitidos.length);
-  preencherTexto("dashAtivos", ativos);
-  preencherTexto("dashConsultores", usuariosPermitidos.filter(u => normalizarPerfil(u.perfil) === PERFIS.CONSULTOR).length);
-  preencherTexto("dashRegionais", usuariosPermitidos.filter(u => normalizarPerfil(u.perfil) === PERFIS.REGIONAL).length);
-  preencherTexto("dashCooperativas", cooperativas.length);
-
-  preencherTexto("miniTotalUsuarios", usuariosPermitidos.length);
-  preencherTexto("miniUsuariosAtivos", ativos);
-  preencherTexto("miniUsuariosInativos", inativos);
-  preencherTexto("miniAdmins", usuariosPermitidos.filter(u => normalizarPerfil(u.perfil) === PERFIS.ADMINISTRATIVO || normalizarPerfil(u.perfil) === PERFIS.SUPER_ADMIN).length);
-  preencherTexto("miniRegionais", usuariosPermitidos.filter(u => normalizarPerfil(u.perfil) === PERFIS.REGIONAL).length);
-  preencherTexto("miniConsultores", usuariosPermitidos.filter(u => normalizarPerfil(u.perfil) === PERFIS.CONSULTOR).length);
-}
-
-/* =========================================================
+/* =========================
    USUÁRIOS
-========================================================= */
+========================= */
 
-function filtrarUsuariosPorPermissao(lista) {
-  if (podeVerTudo()) return lista;
-
-  if (isRegional()) {
-    return lista.filter(usuario => {
-      return (
-        String(usuario.cooperativa_id) === String(usuarioLogado?.cooperativa_id) &&
-        normalizarPerfil(usuario.perfil) === PERFIS.CONSULTOR
-      );
-    });
+async function carregarUsuarios() {
+  if (!podeGerenciarUsuarios()) {
+    alert('Você não tem permissão para carregar usuários.');
+    return;
   }
 
-  if (isConsultor()) {
-    return lista.filter(usuario => {
-      return String(usuario.email).toLowerCase() === String(usuarioLogado?.email).toLowerCase();
+  try {
+    const resultado = await apiPost({
+      action: 'listarUsuarios'
     });
-  }
 
-  return [];
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao carregar usuários.');
+      return;
+    }
+
+    usuariosCache = resultado.usuarios || [];
+
+    renderizarUsuarios(usuariosCache);
+    atualizarMiniDashboardUsuarios(usuariosCache);
+
+  } catch (erro) {
+    console.error(erro);
+    alert('Erro ao carregar usuários.');
+  }
 }
 
-function renderizarUsuarios() {
-  const corpo =
-    document.getElementById("listaUsuarios") ||
-    document.getElementById("tabelaUsuariosBody") ||
-    document.querySelector("#tabelaUsuarios tbody");
+function renderizarUsuarios(lista) {
+  const tbody = document.getElementById('tabelaUsuariosBody');
+  if (!tbody) return;
 
-  if (!corpo) return;
-
-  let lista = filtrarUsuariosPorPermissao(usuarios);
-
-  const status = pegarValor("filtroStatusUsuario");
-  const perfil = pegarValor("filtroPerfilUsuario");
-  const busca = (pegarValor("filtroBuscaUsuario") || pegarValor("buscaUsuario")).toLowerCase();
-
-  if (status) {
-    lista = lista.filter(usuario => normalizarStatus(usuario.status) === normalizarStatus(status));
-  }
-
-  if (perfil && podeVerTudo()) {
-    lista = lista.filter(usuario => normalizarPerfil(usuario.perfil) === normalizarPerfil(perfil));
-  }
-
-  if (busca) {
-    lista = lista.filter(usuario => {
-      return (
-        String(usuario.nome || "").toLowerCase().includes(busca) ||
-        String(usuario.email || "").toLowerCase().includes(busca) ||
-        String(usuario.telefone || "").toLowerCase().includes(busca) ||
-        String(formatarPerfil(usuario.perfil) || "").toLowerCase().includes(busca) ||
-        String(obterNomeCooperativa(usuario.cooperativa_id) || "").toLowerCase().includes(busca)
-      );
-    });
-  }
-
-  corpo.innerHTML = "";
+  tbody.innerHTML = '';
 
   if (!lista.length) {
-    corpo.innerHTML = `
+    tbody.innerHTML = `
       <tr>
-        <td colspan="7" class="empty-table">Nenhum usuário encontrado.</td>
+        <td colspan="6" class="empty-table">
+          Nenhum usuário encontrado.
+        </td>
       </tr>
     `;
     return;
   }
 
   lista.forEach(usuario => {
-    const tr = document.createElement("tr");
+    const tr = document.createElement('tr');
+
+    const statusTexto = String(usuario.status || '').toUpperCase();
+
+    const statusClass = statusTexto === 'ATIVO'
+      ? 'status ativo'
+      : 'status inativo';
+
+    const podeEditar = podeEditarUsuarioAlvo(usuario);
+    const podeAlterarStatus = podeAlterarStatusUsuarioAlvo(usuario);
+    const podeExcluir = podeExcluirUsuarioAlvo(usuario);
+    const mensagemProtecao = obterMensagemProtecaoUsuario(usuario);
+
+    let botoesAcoes = '';
+
+    if (podeEditar) {
+      botoesAcoes += `
+        <button onclick="abrirModalEditarUsuario('${usuario.id}')">
+          Editar
+        </button>
+      `;
+    }
+
+    if (podeAlterarStatus) {
+      botoesAcoes += `
+        <button onclick="alterarStatusUsuario('${usuario.id}')">
+          ${statusTexto === 'ATIVO' ? 'Inativar' : 'Ativar'}
+        </button>
+      `;
+    }
+
+    if (podeExcluir) {
+      botoesAcoes += `
+        <button
+          class="danger"
+          onclick="confirmarExclusaoUsuario('${usuario.id}', '${usuario.nome || ''}')"
+        >
+          Excluir
+        </button>
+      `;
+    }
+
+    if (!botoesAcoes.trim()) {
+      botoesAcoes = `
+        <span class="acao-protegida">
+          ${mensagemProtecao || 'Sem ações disponíveis'}
+        </span>
+      `;
+    } else if (mensagemProtecao && !podeExcluir) {
+      botoesAcoes += `
+        <span class="acao-protegida">
+          ${mensagemProtecao}
+        </span>
+      `;
+    }
 
     tr.innerHTML = `
-      <td>${escapar(usuario.nome || "-")}</td>
-      <td>${escapar(usuario.email || "-")}</td>
-      <td>${escapar(usuario.telefone || "-")}</td>
-      <td><span class="tag">${escapar(formatarPerfil(usuario.perfil) || "-")}</span></td>
-      <td>${escapar(obterNomeCooperativa(usuario.cooperativa_id) || usuario.cooperativa || "-")}</td>
       <td>
-        <span class="badge ${classeStatusUsuario(usuario.status)}">
-          ${escapar(usuario.status || "-")}
+        <strong>${usuario.nome || '-'}</strong>
+        <small>${usuario.id || ''}</small>
+      </td>
+
+      <td>${usuario.email || '-'}</td>
+
+      <td>
+        <span class="tag">
+          ${usuario.perfil || '-'}
         </span>
       </td>
+
+      <td>${obterNomeCooperativa(usuario.cooperativa_id)}</td>
+
+      <td>
+        <span class="${statusClass}">
+          ${usuario.status || '-'}
+        </span>
+      </td>
+
       <td class="acoes">
-        ${
-          podeGerenciarUsuarios()
-            ? `<button type="button" class="btn-acao" onclick="editarUsuario('${escaparAtributo(usuario.id)}')">Editar</button>`
-            : `<span class="acao-protegida">Protegido</span>`
-        }
-        ${
-          podeAlterarStatusUsuario()
-            ? `<button type="button" class="btn-acao secundario" onclick="alternarStatusUsuario('${escaparAtributo(usuario.id)}')">
-                ${normalizarStatus(usuario.status) === STATUS_USUARIO.ATIVO ? "Inativar" : "Ativar"}
-              </button>`
-            : ""
-        }
+        ${botoesAcoes}
       </td>
     `;
 
-    corpo.appendChild(tr);
+    tbody.appendChild(tr);
   });
 }
 
-function abrirFormularioNovoUsuario() {
-  if (!podeGerenciarUsuarios()) {
-    mostrarToast("Você não tem permissão para criar usuários.", "erro");
-    return;
+function atualizarMiniDashboardUsuarios(lista) {
+  setTexto('miniTotalUsuarios', lista.length);
+
+  setTexto(
+    'miniUsuariosAtivos',
+    lista.filter(u => String(u.status || '').toUpperCase() === 'ATIVO').length
+  );
+
+  setTexto(
+    'miniUsuariosInativos',
+    lista.filter(u => String(u.status || '').toUpperCase() === 'INATIVO').length
+  );
+
+  setTexto(
+    'miniAdmins',
+    lista.filter(u => {
+      const perfil = String(u.perfil || '').toUpperCase();
+      return perfil === 'SUPER_ADMIN' || perfil === 'ADMINISTRATIVO';
+    }).length
+  );
+
+  setTexto(
+    'miniRegionais',
+    lista.filter(u => String(u.perfil || '').toUpperCase() === 'REGIONAL').length
+  );
+
+  setTexto(
+    'miniConsultores',
+    lista.filter(u => String(u.perfil || '').toUpperCase() === 'CONSULTOR').length
+  );
+}
+
+function filtrarUsuarios() {
+  const busca = document.getElementById('buscaUsuario')?.value.toLowerCase() || '';
+  const status = document.getElementById('filtroStatusUsuario')?.value || '';
+  const perfil = document.getElementById('filtroPerfilUsuario')?.value || '';
+
+  let lista = [...usuariosCache];
+
+  if (busca) {
+    lista = lista.filter(usuario => {
+      const nome = String(usuario.nome || '').toLowerCase();
+      const email = String(usuario.email || '').toLowerCase();
+      const coop = String(obterNomeCooperativa(usuario.cooperativa_id) || '').toLowerCase();
+
+      return (
+        nome.includes(busca) ||
+        email.includes(busca) ||
+        coop.includes(busca)
+      );
+    });
   }
 
-  limparFormularioUsuario();
-  carregarSelectCooperativasUsuario();
-  abrirModal("modalUsuario");
+  if (status) {
+    lista = lista.filter(usuario =>
+      String(usuario.status || '').toUpperCase() === status
+    );
+  }
+
+  if (perfil) {
+    lista = lista.filter(usuario =>
+      String(usuario.perfil || '').toUpperCase() === perfil
+    );
+  }
+
+  renderizarUsuarios(lista);
 }
+
+/* =========================
+   MODAL USUÁRIOS
+========================= */
 
 function abrirModalNovoUsuario() {
-  abrirFormularioNovoUsuario();
-}
-
-function limparFormularioUsuario() {
-  preencherValor("usuarioId", "");
-  preencherValor("usuarioNome", "");
-  preencherValor("usuarioEmail", "");
-  preencherValor("usuarioTelefone", "");
-  preencherValor("usuarioSenha", "");
-  preencherValor("usuarioPerfil", "");
-  preencherValor("usuarioCooperativa", "");
-  preencherValor("usuarioPermissoes", "");
-  preencherValor("usuarioStatus", STATUS_USUARIO.ATIVO);
-}
-
-function carregarSelectCooperativasUsuario() {
-  const select = document.getElementById("usuarioCooperativa");
-  if (!select) return;
-
-  select.innerHTML = `<option value="">Selecione a cooperativa</option>`;
-
-  cooperativas.forEach(coop => {
-    const option = document.createElement("option");
-    option.value = coop.id;
-    option.textContent = coop.nome_cooperativa;
-    select.appendChild(option);
-  });
-}
-
-function editarUsuario(id) {
   if (!podeGerenciarUsuarios()) {
-    mostrarToast("Você não tem permissão para editar usuários.", "erro");
+    alert('Você não tem permissão para criar usuários.');
     return;
   }
 
-  const usuario = usuarios.find(u => String(u.id) === String(id));
+  document.getElementById('modalUsuarioTitulo').innerText = 'Novo Usuário';
+
+  document.getElementById('usuarioId').value = '';
+  document.getElementById('usuarioNome').value = '';
+  document.getElementById('usuarioEmail').value = '';
+  document.getElementById('usuarioSenha').value = '';
+
+  document.getElementById('usuarioPerfil').value = 'CONSULTOR';
+  document.getElementById('usuarioCooperativa').value = '';
+  document.getElementById('usuarioPermissoes').value = '';
+  document.getElementById('usuarioStatus').value = 'ATIVO';
+
+  preencherSelectCooperativas();
+  ajustarOpcoesPerfilUsuario();
+
+  abrirModal('modalUsuario');
+}
+
+function abrirModalEditarUsuario(id) {
+  const usuario = usuariosCache.find(u => String(u.id) === String(id));
 
   if (!usuario) {
-    mostrarToast("Usuário não encontrado.", "erro");
+    alert('Usuário não encontrado.');
     return;
   }
 
-  carregarSelectCooperativasUsuario();
+  if (!podeEditarUsuarioAlvo(usuario)) {
+    alert('Você não tem permissão para editar este usuário.');
+    return;
+  }
 
-  preencherValor("usuarioId", usuario.id);
-  preencherValor("usuarioNome", usuario.nome);
-  preencherValor("usuarioEmail", usuario.email);
-  preencherValor("usuarioTelefone", usuario.telefone);
-  preencherValor("usuarioPerfil", usuario.perfil);
-  preencherValor("usuarioCooperativa", usuario.cooperativa_id);
-  preencherValor("usuarioPermissoes", usuario.permissoes || "");
-  preencherValor("usuarioStatus", usuario.status);
-  preencherValor("usuarioSenha", "");
+  document.getElementById('modalUsuarioTitulo').innerText = 'Editar Usuário';
 
-  preencherTexto("modalUsuarioTitulo", "Editar Usuário");
+  document.getElementById('usuarioId').value = usuario.id || '';
+  document.getElementById('usuarioNome').value = usuario.nome || '';
+  document.getElementById('usuarioEmail').value = usuario.email || '';
+  document.getElementById('usuarioSenha').value = '';
+  document.getElementById('usuarioPerfil').value = usuario.perfil || 'CONSULTOR';
+  document.getElementById('usuarioCooperativa').value = usuario.cooperativa_id || '';
+  document.getElementById('usuarioPermissoes').value = usuario.permissoes || '';
+  document.getElementById('usuarioStatus').value = usuario.status || 'ATIVO';
 
-  abrirModal("modalUsuario");
+  preencherSelectCooperativas(usuario.cooperativa_id);
+  ajustarOpcoesPerfilUsuario(usuario.perfil || '');
+
+  abrirModal('modalUsuario');
 }
 
 async function salvarUsuario(event) {
   event.preventDefault();
 
   if (!podeGerenciarUsuarios()) {
-    mostrarToast("Você não tem permissão para salvar usuários.", "erro");
+    alert('Você não tem permissão para salvar usuários.');
     return;
   }
 
-  const id = pegarValor("usuarioId");
-  const nome = pegarValor("usuarioNome");
-  const email = pegarValor("usuarioEmail");
-  const telefone = pegarValor("usuarioTelefone");
-  const senha = pegarValor("usuarioSenha");
-  const perfil = pegarValor("usuarioPerfil");
-  const cooperativaId = pegarValor("usuarioCooperativa");
-  const permissoes = pegarValor("usuarioPermissoes");
-  const status = pegarValor("usuarioStatus") || STATUS_USUARIO.ATIVO;
+  const id = document.getElementById('usuarioId').value.trim();
+  const perfilSelecionado = document.getElementById('usuarioPerfil').value;
 
-  if (!nome || !email || !perfil || !cooperativaId) {
-    mostrarToast("Preencha nome, e-mail, perfil e cooperativa.", "erro");
+  if (!podeCriarPerfil(perfilSelecionado)) {
+    alert('Você não tem permissão para criar ou definir este perfil.');
+    return;
+  }
+
+  if (id) {
+    const usuarioAtual = usuariosCache.find(u => String(u.id) === String(id));
+
+    if (!usuarioAtual || !podeEditarUsuarioAlvo(usuarioAtual)) {
+      alert('Você não tem permissão para editar este usuário.');
+      return;
+    }
+  }
+
+  const payload = {
+    action: id ? 'editarUsuario' : 'salvarUsuario',
+    id,
+    usuario_logado_id: usuarioLogado?.id || '',
+    usuario_logado_perfil: usuarioLogado?.perfil || '',
+    nome: document.getElementById('usuarioNome').value.trim(),
+    email: document.getElementById('usuarioEmail').value.trim(),
+    senha: document.getElementById('usuarioSenha').value.trim(),
+    perfil: perfilSelecionado,
+    cooperativa_id: document.getElementById('usuarioCooperativa').value,
+    permissoes: document.getElementById('usuarioPermissoes').value.trim(),
+    status: document.getElementById('usuarioStatus').value
+  };
+
+  if (!payload.nome || !payload.email || !payload.perfil) {
+    alert('Preencha nome, e-mail e perfil.');
     return;
   }
 
   try {
-    bloquearBotao("btnSalvarUsuario", true, "Salvando...");
+    const resultado = await apiPost(payload);
 
-    const payload = {
-      id,
-      nome,
-      email,
-      telefone,
-      senha,
-      perfil,
-      cooperativa_id: cooperativaId,
-      permissoes,
-      status,
-      usuario_logado_id: usuarioLogado.id,
-      usuario_logado_perfil: usuarioLogado.perfil,
-    };
-
-    if (id) {
-      await chamarApi("editarUsuario", payload);
-      mostrarToast("Usuário atualizado com sucesso.", "sucesso");
-    } else {
-      await chamarApi("salvarUsuario", payload);
-      mostrarToast("Usuário cadastrado com sucesso.", "sucesso");
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao salvar usuário.');
+      return;
     }
 
-    fecharModal("modalUsuario");
+    alert(resultado.message || 'Usuário salvo com sucesso.');
 
-    await carregarUsuarios();
-    configurarFormularioSolicitacao();
-    renderizarUsuarios();
-    renderizarDashboard();
+    fecharModal('modalUsuario');
+    carregarUsuarios();
+    carregarDashboard();
+
   } catch (erro) {
     console.error(erro);
-  } finally {
-    bloquearBotao("btnSalvarUsuario", false, "Salvar");
+    alert('Erro ao salvar usuário.');
   }
 }
 
-async function alternarStatusUsuario(id) {
-  if (!podeAlterarStatusUsuario()) {
-    mostrarToast("Você não tem permissão para alterar status de usuários.", "erro");
+async function alterarStatusUsuario(id) {
+  const usuario = usuariosCache.find(u => String(u.id) === String(id));
+
+  if (!usuario || !podeAlterarStatusUsuarioAlvo(usuario)) {
+    alert('Você não tem permissão para alterar o status deste usuário.');
     return;
   }
 
-  const usuario = usuarios.find(u => String(u.id) === String(id));
+  try {
+    const resultado = await apiPost({
+      action: 'alterarStatusUsuario',
+      id,
+      usuario_logado_id: usuarioLogado?.id || '',
+      usuario_logado_perfil: usuarioLogado?.perfil || ''
+    });
 
-  if (!usuario) {
-    mostrarToast("Usuário não encontrado.", "erro");
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao alterar status.');
+      return;
+    }
+
+    carregarUsuarios();
+    carregarDashboard();
+
+  } catch (erro) {
+    console.error(erro);
+    alert('Erro ao alterar status.');
+  }
+}
+
+function confirmarExclusaoUsuario(id, nome) {
+  const usuario = usuariosCache.find(u => String(u.id) === String(id));
+
+  if (!usuario || !podeExcluirUsuarioAlvo(usuario)) {
+    alert('Você não tem permissão para excluir este usuário.');
     return;
   }
 
-  const confirmar = confirm(`Deseja realmente alterar o status de ${usuario.nome}?`);
+  const confirmar = confirm(
+    `Tem certeza que deseja excluir o usuário "${nome}"?\n\nEssa ação não poderá ser desfeita.`
+  );
 
   if (!confirmar) return;
 
+  excluirUsuario(id);
+}
+
+async function excluirUsuario(id) {
+  const usuario = usuariosCache.find(u => String(u.id) === String(id));
+
+  if (!usuario || !podeExcluirUsuarioAlvo(usuario)) {
+    alert('Você não tem permissão para excluir este usuário.');
+    return;
+  }
+
   try {
-    await chamarApi("alterarStatusUsuario", {
+    const resultado = await apiPost({
+      action: 'excluirUsuario',
       id,
-      usuario_logado_id: usuarioLogado.id,
-      usuario_logado_perfil: usuarioLogado.perfil,
+      usuario_logado_id: usuarioLogado?.id || '',
+      usuario_logado_perfil: usuarioLogado?.perfil || ''
     });
 
-    mostrarToast("Status atualizado com sucesso.", "sucesso");
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao excluir usuário.');
+      return;
+    }
 
-    await carregarUsuarios();
-    configurarFormularioSolicitacao();
-    renderizarUsuarios();
-    renderizarDashboard();
+    alert(resultado.message || 'Usuário excluído com sucesso.');
+
+    carregarUsuarios();
+    carregarDashboard();
+
+  } catch (erro) {
+    console.error(erro);
+    alert('Erro ao excluir usuário.');
+  }
+}
+
+/* =========================
+   COOPERATIVAS
+========================= */
+
+async function carregarCooperativas() {
+  try {
+    const resultado = await apiPost({
+      action: 'listarCooperativas'
+    });
+
+    if (!resultado.success) return;
+
+    cooperativasCache = resultado.cooperativas || [];
+
+    renderizarCooperativas(cooperativasCache);
+    preencherSelectCooperativas();
+    preencherSelectConsultorCooperativas();
+
   } catch (erro) {
     console.error(erro);
   }
 }
 
-/* =========================================================
-   COOPERATIVAS
-========================================================= */
+function renderizarCooperativas(lista) {
+  const tbody = document.getElementById('tabelaCooperativasBody');
+  if (!tbody) return;
 
-function renderizarCooperativas() {
-  const corpo =
-    document.getElementById("listaCooperativas") ||
-    document.getElementById("tabelaCooperativasBody") ||
-    document.querySelector("#tabelaCooperativas tbody");
-
-  if (!corpo) return;
-
-  let lista = cooperativas;
-
-  if (!podeVerTudo()) {
-    lista = cooperativas.filter(coop => String(coop.id) === String(usuarioLogado?.cooperativa_id));
-  }
-
-  corpo.innerHTML = "";
+  tbody.innerHTML = '';
 
   if (!lista.length) {
-    corpo.innerHTML = `
+    tbody.innerHTML = `
       <tr>
-        <td colspan="4" class="empty-table">Nenhuma cooperativa encontrada.</td>
+        <td colspan="5" class="empty-table">
+          Nenhuma cooperativa encontrada.
+        </td>
       </tr>
     `;
     return;
   }
 
   lista.forEach(coop => {
-    const tr = document.createElement("tr");
+    const tr = document.createElement('tr');
+
+    const statusTexto = String(coop.status || '').toUpperCase();
+
+    const statusClass =
+      statusTexto === 'ATIVA' || statusTexto === 'ATIVO'
+        ? 'status ativo'
+        : 'status inativo';
 
     tr.innerHTML = `
-      <td>${escapar(coop.nome_cooperativa || "-")}</td>
-      <td>${escapar(coop.regional || coop.regional_responsavel || "-")}</td>
       <td>
-        <span class="badge ${classeStatusUsuario(coop.status)}">
-          ${escapar(coop.status || "-")}
+        <strong>${coop.nome_cooperativa || coop.nome || '-'}</strong>
+        <small>${coop.id || ''}</small>
+      </td>
+
+      <td>${coop.regional_responsavel || '-'}</td>
+      <td>${coop.cidade || '-'}</td>
+
+      <td>
+        <span class="${statusClass}">
+          ${coop.status || '-'}
         </span>
       </td>
+
       <td class="acoes">
-        ${
-          podeGerenciarCooperativas()
-            ? `<button type="button" class="btn-acao" onclick="editarCooperativa('${escaparAtributo(coop.id)}')">Editar</button>`
-            : `<span class="acao-protegida">Protegido</span>`
-        }
+        <button disabled>Editar</button>
       </td>
     `;
 
-    corpo.appendChild(tr);
+    tbody.appendChild(tr);
   });
 }
 
-function abrirFormularioNovaCooperativa() {
-  if (!podeGerenciarCooperativas()) {
-    mostrarToast("Você não tem permissão para criar cooperativas.", "erro");
+function abrirModalNovaCooperativa() {
+  if (!podeGerenciarUsuarios()) {
+    alert('Você não tem permissão para criar cooperativas.');
     return;
   }
 
-  preencherValor("cooperativaId", "");
-  preencherValor("coopNome", "");
-  preencherValor("coopRegional", "");
-  preencherValor("coopCidade", "");
-  preencherValor("coopStatus", "ATIVO");
+  document.getElementById('coopNome').value = '';
+  document.getElementById('coopRegional').value = '';
+  document.getElementById('coopCidade').value = '';
+  document.getElementById('coopStatus').value = 'ATIVA';
 
-  abrirModal("modalCooperativa");
-}
-
-function abrirModalNovaCooperativa() {
-  abrirFormularioNovaCooperativa();
+  abrirModal('modalCooperativa');
 }
 
 async function salvarCooperativa(event) {
   event.preventDefault();
 
-  if (!podeGerenciarCooperativas()) {
-    mostrarToast("Você não tem permissão para salvar cooperativas.", "erro");
+  if (!podeGerenciarUsuarios()) {
+    alert('Você não tem permissão para salvar cooperativas.');
     return;
   }
 
-  const nome = pegarValor("coopNome");
-  const regional = pegarValor("coopRegional");
-  const cidade = pegarValor("coopCidade");
-  const status = pegarValor("coopStatus") || "ATIVA";
+  const payload = {
+    action: 'criarCooperativa',
+    nome_cooperativa: document.getElementById('coopNome').value.trim(),
+    regional_responsavel: document.getElementById('coopRegional').value.trim(),
+    cidade: document.getElementById('coopCidade').value.trim(),
+    status: document.getElementById('coopStatus').value
+  };
 
-  if (!nome) {
-    mostrarToast("Informe o nome da cooperativa.", "erro");
+  if (!payload.nome_cooperativa || !payload.regional_responsavel || !payload.cidade) {
+    alert('Preencha nome da cooperativa, regional responsável e cidade.');
     return;
   }
 
   try {
-    bloquearBotao("btnSalvarCooperativa", true, "Salvando...");
+    const resultado = await apiPost(payload);
 
-    await chamarApi("criarCooperativa", {
-      nome_cooperativa: nome,
-      nome,
-      regional_responsavel: regional,
-      cidade,
-      status,
-    });
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao salvar cooperativa.');
+      return;
+    }
 
-    mostrarToast("Cooperativa cadastrada com sucesso.", "sucesso");
+    alert(resultado.message || 'Cooperativa cadastrada com sucesso.');
 
-    fecharModal("modalCooperativa");
+    fecharModal('modalCooperativa');
+    carregarCooperativas();
+    carregarDashboard();
 
-    await carregarCooperativas();
-    configurarFormularioSolicitacao();
-    renderizarCooperativas();
-    renderizarDashboard();
   } catch (erro) {
     console.error(erro);
-  } finally {
-    bloquearBotao("btnSalvarCooperativa", false, "Salvar Cooperativa");
+    alert('Erro ao salvar cooperativa.');
   }
 }
 
-function editarCooperativa(id) {
-  if (!podeGerenciarCooperativas()) {
-    mostrarToast("Você não tem permissão para editar cooperativas.", "erro");
-    return;
-  }
+function preencherSelectCooperativas(valorSelecionado = '') {
+  const select = document.getElementById('usuarioCooperativa');
 
-  mostrarToast("A edição de cooperativa ainda não está configurada no Apps Script.", "aviso");
+  if (!select) return;
+
+  select.innerHTML =
+    '<option value="">Selecione uma cooperativa</option>';
+
+  cooperativasCache.forEach(coop => {
+    const option = document.createElement('option');
+
+    option.value = coop.id;
+    option.textContent = coop.nome_cooperativa || coop.nome || coop.id;
+
+    if (String(coop.id) === String(valorSelecionado)) {
+      option.selected = true;
+    }
+
+    select.appendChild(option);
+  });
 }
 
-/* =========================================================
-   SOLICITAÇÃO DE CADASTRO DE CONSULTOR
-========================================================= */
+function preencherSelectConsultorCooperativas(valorSelecionado = '') {
+  const select = document.getElementById('consultorCooperativa');
 
-function configurarFormularioSolicitacao() {
-  carregarSelectCooperativasSolicitacao();
-  carregarSelectUsuariosSolicitacao();
+  if (!select) return;
 
-  const area = document.getElementById("areaSolicitacaoCadastro");
-  if (area) {
-    area.style.display = podeSolicitarCadastroConsultor() ? "" : "none";
+  select.innerHTML =
+    '<option value="">Selecione a cooperativa</option>';
+
+  let lista = [...cooperativasCache];
+
+  if (usuarioEhRegional()) {
+    const coopUsuario = String(usuarioLogado?.cooperativa_id || '').trim();
+
+    lista = lista.filter(coop =>
+      String(coop.id) === coopUsuario ||
+      String(coop.nome_cooperativa || '').toLowerCase() === coopUsuario.toLowerCase()
+    );
+  }
+
+  lista.forEach(coop => {
+    const option = document.createElement('option');
+
+    option.value = coop.id;
+    option.textContent = coop.nome_cooperativa || coop.nome || coop.id;
+
+    if (String(coop.id) === String(valorSelecionado)) {
+      option.selected = true;
+    }
+
+    select.appendChild(option);
+  });
+}
+
+function obterNomeCooperativa(id) {
+  if (!id) return '-';
+
+  const valor = String(id).trim();
+
+  if (
+    valor.toUpperCase() === 'TODAS' ||
+    valor.toLowerCase() === 'todas'
+  ) {
+    return 'Todas';
+  }
+
+  const coop = cooperativasCache.find(c =>
+    String(c.id) === valor ||
+    String(c.nome_cooperativa || '').toLowerCase() === valor.toLowerCase()
+  );
+
+  return coop ? (coop.nome_cooperativa || coop.nome) : valor;
+}
+
+/* =========================
+   CENTRAL DO CONSULTOR
+========================= */
+
+async function carregarPalavraChave() {
+  try {
+    const resultado = await apiPost({
+      action: 'buscarPalavraChave'
+    });
+
+    if (!resultado.success) return;
+
+    setTexto(
+      'palavraChaveDia',
+      resultado.palavra || '---'
+    );
+
+  } catch (erro) {
+    console.error(erro);
   }
 }
 
 function abrirModalConsultor() {
   if (!podeSolicitarCadastroConsultor()) {
-    mostrarToast("Você não tem permissão para solicitar cadastro de consultor.", "erro");
+    alert('Você não tem permissão para realizar essa ação.');
     return;
   }
 
-  configurarFormularioSolicitacao();
-  abrirModal("modalSolicitacaoCadastro");
-}
+  const titulo = document.getElementById('tituloModalConsultor');
+  const botao = document.getElementById('btnSalvarConsultor');
 
-function carregarSelectCooperativasSolicitacao() {
-  const select = document.getElementById("cooperativaSolicitacao");
-  if (!select) return;
-
-  select.innerHTML = "";
-
-  if (!podeSolicitarCadastroConsultor()) {
-    select.innerHTML = `<option value="">Sem permissão</option>`;
-    select.disabled = true;
-    return;
+  if (titulo) {
+    titulo.innerText = 'Solicitar Cadastro de Consultor';
   }
 
-  let lista = [];
-
-  if (podeVerTudo()) {
-    lista = cooperativas;
-    select.innerHTML = `<option value="">Selecione uma cooperativa</option>`;
-  } else if (isRegional()) {
-    lista = cooperativas.filter(coop => {
-      return String(coop.id) === String(usuarioLogado?.cooperativa_id);
-    });
+  if (botao) {
+    botao.innerText = 'Enviar solicitação de Cadastro';
   }
 
-  lista.forEach(coop => {
-    const option = document.createElement("option");
-    option.value = coop.id;
-    option.textContent = coop.nome_cooperativa;
-    select.appendChild(option);
-  });
+  document.getElementById('consultorNome').value = '';
+  document.getElementById('consultorEmail').value = '';
+  document.getElementById('consultorTelefone').value = '';
+  document.getElementById('consultorObservacao').value = '';
 
-  if (isRegional() && usuarioLogado?.cooperativa_id) {
-    select.value = usuarioLogado.cooperativa_id;
-    select.disabled = true;
+  const linkZap = document.getElementById('linkContratoZap');
+  if (linkZap) linkZap.value = LINK_CONTRATO_ZAPSIGN;
+
+  preencherSelectConsultorCooperativas();
+
+  const regional = document.getElementById('consultorRegional');
+
+  if (usuarioEhRegional()) {
+    regional.value = usuarioLogado.nome || '';
+    regional.readOnly = true;
   } else {
-    select.disabled = false;
+    regional.value = '';
+    regional.readOnly = false;
   }
+
+  abrirModal('modalConsultor');
 }
 
-function carregarSelectUsuariosSolicitacao() {
-  const select = document.getElementById("usuarioSolicitacao");
-  if (!select) return;
-
-  select.innerHTML = "";
-
-  if (!podeSolicitarCadastroConsultor()) {
-    select.innerHTML = `<option value="">Sem permissão</option>`;
-    select.disabled = true;
-    return;
-  }
-
-  let lista = [];
-
-  if (podeVerTudo()) {
-    lista = usuarios.filter(usuario => normalizarPerfil(usuario.perfil) === PERFIS.CONSULTOR);
-    select.innerHTML = `<option value="">Selecione o consultor</option>`;
-  } else if (isRegional()) {
-    lista = usuarios.filter(usuario => {
-      return (
-        String(usuario.cooperativa_id) === String(usuarioLogado?.cooperativa_id) &&
-        normalizarPerfil(usuario.perfil) === PERFIS.CONSULTOR
-      );
-    });
-
-    select.innerHTML = `<option value="">Selecione o consultor</option>`;
-  }
-
-  lista.forEach(usuario => {
-    if (!podeSolicitarParaUsuario(usuario)) return;
-
-    const option = document.createElement("option");
-    option.value = usuario.id;
-    option.textContent = `${usuario.nome} — ${usuario.email}`;
-    select.appendChild(option);
-  });
-
-  select.disabled = false;
-
-  select.onchange = () => {
-    const usuarioSelecionado = usuarios.find(u => String(u.id) === String(select.value));
-    if (usuarioSelecionado) preencherDadosSolicitacaoPorUsuario(usuarioSelecionado);
-  };
-}
-
-function carregarUsuariosDaCooperativaSelecionada() {
-  const selectCoop = document.getElementById("cooperativaSolicitacao");
-  const selectUsuario = document.getElementById("usuarioSolicitacao");
-
-  if (!selectCoop || !selectUsuario) return;
-  if (!podeSolicitarCadastroConsultor()) return;
-
-  const cooperativaId = selectCoop.value;
-
-  let lista = usuarios.filter(usuario => normalizarPerfil(usuario.perfil) === PERFIS.CONSULTOR);
-
-  if (cooperativaId) {
-    lista = lista.filter(usuario => String(usuario.cooperativa_id) === String(cooperativaId));
-  }
-
-  if (isRegional()) {
-    lista = lista.filter(usuario => {
-      return String(usuario.cooperativa_id) === String(usuarioLogado?.cooperativa_id);
-    });
-  }
-
-  selectUsuario.innerHTML = `<option value="">Selecione o consultor</option>`;
-
-  lista.forEach(usuario => {
-    if (!podeSolicitarParaUsuario(usuario)) return;
-
-    const option = document.createElement("option");
-    option.value = usuario.id;
-    option.textContent = `${usuario.nome} — ${usuario.email}`;
-    selectUsuario.appendChild(option);
-  });
-}
-
-function preencherDadosSolicitacaoPorUsuario(usuario) {
-  if (!usuario) return;
-
-  preencherValor("nomeSolicitacao", usuario.nome || "");
-  preencherValor("emailSolicitacao", usuario.email || "");
-  preencherValor("telefoneSolicitacao", usuario.telefone || "");
-  preencherValor("cooperativaSolicitacao", usuario.cooperativa_id || "");
-
-  const campoCoop = document.getElementById("cooperativaSolicitacao");
-  if (campoCoop && isRegional()) {
-    campoCoop.disabled = true;
-  }
-}
-
-async function salvarSolicitacao(event) {
+async function salvarConsultor(event) {
   event.preventDefault();
 
   if (!podeSolicitarCadastroConsultor()) {
-    mostrarToast("Você não tem permissão para solicitar cadastro de consultor.", "erro");
+    alert('Você não tem permissão para realizar essa ação.');
     return;
   }
 
-  const usuarioId = pegarValor("usuarioSolicitacao");
-  const usuarioSelecionado = usuarios.find(u => String(u.id) === String(usuarioId));
+  const payload = {
+    action: 'salvarConsultor',
+    solicitante_id: usuarioLogado?.id || '',
+    solicitante_nome: usuarioLogado?.nome || '',
+    solicitante_perfil: usuarioLogado?.perfil || '',
+    nome: document.getElementById('consultorNome').value.trim(),
+    email: document.getElementById('consultorEmail').value.trim(),
+    telefone: document.getElementById('consultorTelefone').value.trim(),
+    cooperativa_id: document.getElementById('consultorCooperativa').value,
+    regional: document.getElementById('consultorRegional').value.trim(),
+    observacao: document.getElementById('consultorObservacao').value.trim(),
+    status: 'PENDENTE'
+  };
 
-  if (!usuarioSelecionado) {
-    mostrarToast("Selecione um consultor para solicitar o cadastro.", "erro");
-    return;
-  }
-
-  if (!podeSolicitarParaUsuario(usuarioSelecionado)) {
-    mostrarToast("Você não tem permissão para solicitar cadastro para este consultor.", "erro");
-    return;
-  }
-
-  let cooperativaId = usuarioSelecionado.cooperativa_id || pegarValor("cooperativaSolicitacao");
-
-  if (isRegional()) {
-    cooperativaId = usuarioLogado.cooperativa_id;
-  }
-
-  if (!cooperativaId) {
-    mostrarToast("Cooperativa não informada.", "erro");
+  if (
+    !payload.nome ||
+    !payload.email ||
+    !payload.telefone ||
+    !payload.cooperativa_id ||
+    !payload.regional
+  ) {
+    alert('Preencha todos os campos obrigatórios.');
     return;
   }
 
   try {
-    bloquearBotao("btnSalvarSolicitacao", true, "Enviando...");
+    const resultado = await apiPost(payload);
 
-    await chamarApi("salvarConsultor", {
-      nome: usuarioSelecionado.nome || pegarValor("nomeSolicitacao"),
-      email: usuarioSelecionado.email || pegarValor("emailSolicitacao"),
-      telefone: usuarioSelecionado.telefone || pegarValor("telefoneSolicitacao"),
-      cooperativa_id: cooperativaId,
-      regional: obterRegionalDaCooperativa(cooperativaId),
-      observacao: pegarValor("observacaoSolicitacao"),
-      solicitante_perfil: usuarioLogado.perfil,
-      solicitante_nome: usuarioLogado.nome,
-    });
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao enviar solicitação.');
+      return;
+    }
 
-    mostrarToast("Solicitação enviada com sucesso.", "sucesso");
+    alert(resultado.message || 'Solicitação enviada com sucesso.');
 
-    limparFormularioSolicitacao();
-    fecharModal("modalSolicitacaoCadastro");
+    fecharModal('modalConsultor');
+    carregarConsultores();
 
-    await carregarTickets();
-    renderizarTickets();
-    renderizarDashboard();
   } catch (erro) {
     console.error(erro);
-  } finally {
-    bloquearBotao("btnSalvarSolicitacao", false, "Enviar Solicitação");
+    alert('Erro ao enviar solicitação.');
   }
 }
 
-function limparFormularioSolicitacao() {
-  preencherValor("usuarioSolicitacao", "");
-  preencherValor("nomeSolicitacao", "");
-  preencherValor("emailSolicitacao", "");
-  preencherValor("telefoneSolicitacao", "");
-  preencherValor("observacaoSolicitacao", "");
+function copiarLinkContrato() {
+  const input = document.getElementById('linkContratoZap');
 
-  carregarSelectCooperativasSolicitacao();
-  carregarSelectUsuariosSolicitacao();
-}
+  if (!input) return;
 
-/* =========================================================
-   TICKETS / PROCESSOS
-========================================================= */
+  input.select();
+  input.setSelectionRange(0, 99999);
 
-function filtrarTicketsPorPermissao(lista) {
-  if (podeVerTudo()) return lista;
-
-  if (isRegional()) {
-    return lista.filter(ticket => {
-      return String(ticket.cooperativa_id) === String(usuarioLogado?.cooperativa_id);
+  navigator.clipboard.writeText(input.value)
+    .then(() => {
+      alert('Link copiado com sucesso.');
+    })
+    .catch(() => {
+      document.execCommand('copy');
+      alert('Link copiado com sucesso.');
     });
-  }
-
-  return [];
 }
 
-function renderizarTickets() {
-  const corpo =
-    document.getElementById("listaTickets") ||
-    document.getElementById("tabelaProcessosBody") ||
-    document.querySelector("#tabelaTickets tbody");
+/* =========================
+   CONTEÚDOS GERAIS
+========================= */
 
-  if (!corpo) return;
+async function carregarConteudosGerais() {
+  try {
+    const resultado = await apiPost({
+      action: 'listarConteudosGerais',
+      perfil: usuarioLogado?.perfil || ''
+    });
 
-  let lista = filtrarTicketsPorPermissao(tickets);
+    if (!resultado.success) {
+      console.warn(resultado.message || 'Erro ao carregar conteúdos gerais.');
+      return;
+    }
 
-  const status = pegarValor("filtroStatusTicket") || pegarValor("filtroStatusProcesso");
-  const busca = pegarValor("filtroBuscaTicket").toLowerCase();
+    conteudosCache = resultado.conteudos || [];
 
-  if (status) {
-    lista = lista.filter(ticket => normalizarStatus(ticket.status) === normalizarStatus(status));
+    renderizarConteudosCentral();
+
+  } catch (erro) {
+    console.error('Erro ao carregar conteúdos gerais:', erro);
+  }
+}
+
+function renderizarConteudosCentral() {
+  const campanha = obterPrimeiroConteudoPorCategoria('CAMPANHA');
+  const treinamento = obterPrimeiroConteudoPorCategoria('TREINAMENTO');
+  const evento = obterPrimeiroConteudoPorCategoria('EVENTO');
+
+  const itensCentral = document.querySelectorAll('.central-item');
+
+  if (itensCentral && itensCentral.length >= 3) {
+    configurarItemCentral(itensCentral[0], campanha, 'Campanha promocional em andamento');
+    configurarItemCentral(itensCentral[1], treinamento, 'Novo treinamento disponível');
+    configurarItemCentral(itensCentral[2], evento, 'Evento regional confirmado');
+  }
+
+  configurarBotaoCentralPorTexto('Treinamento Operacional', 'OPERACIONAL');
+  configurarBotaoCentralPorTexto('Aplicativos de Uso Geral', 'APLICATIVO');
+}
+
+function obterPrimeiroConteudoPorCategoria(categoria) {
+  return conteudosCache.find(item =>
+    String(item.categoria || '').toUpperCase() === categoria
+  );
+}
+
+function obterConteudosPorCategoria(categoria) {
+  return conteudosCache.filter(item =>
+    String(item.categoria || '').toUpperCase() === categoria
+  );
+}
+
+function configurarItemCentral(elemento, conteudo, textoPadrao) {
+  if (!elemento) return;
+
+  elemento.style.cursor = 'pointer';
+
+  if (conteudo) {
+    elemento.innerText = conteudo.titulo || textoPadrao;
+    elemento.onclick = () => abrirModalConteudo(conteudo);
+    elemento.title = 'Clique para acessar';
+  } else {
+    elemento.innerText = textoPadrao;
+    elemento.onclick = () => {
+      alert('Nenhum conteúdo ativo cadastrado para esta seção.');
+    };
+    elemento.title = 'Nenhum conteúdo ativo cadastrado';
+  }
+}
+
+function configurarBotaoCentralPorTexto(textoOriginal, categoria) {
+  const botoes = document.querySelectorAll('.btn-central');
+
+  botoes.forEach(botao => {
+    const textoBotao = String(botao.innerText || '').trim();
+
+    if (textoBotao.includes(textoOriginal)) {
+      botao.onclick = () => abrirBibliotecaConteudos(categoria, textoOriginal);
+      botao.style.cursor = 'pointer';
+    }
+  });
+}
+
+function criarModalConteudoDinamico() {
+  criarModalConteudoIndividual();
+  criarModalBibliotecaConteudos();
+}
+
+function criarModalConteudoIndividual() {
+  if (document.getElementById('modalConteudoGeral')) return;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.id = 'modalConteudoGeral';
+
+  modal.innerHTML = `
+    <div class="modal-content modal-conteudo-geral">
+
+      <div class="modal-header">
+
+        <div>
+          <h2 id="conteudoModalTitulo">
+            Conteúdo
+          </h2>
+
+          <p id="conteudoModalCategoria" class="modal-subtitle">
+          </p>
+        </div>
+
+        <button onclick="fecharModal('modalConteudoGeral')">
+          X
+        </button>
+
+      </div>
+
+      <div id="conteudoModalImagemBox" class="conteudo-modal-imagem-box" style="display:none;">
+        <img
+          id="conteudoModalImagem"
+          src=""
+          alt="Imagem do conteúdo"
+          class="conteudo-modal-imagem"
+        />
+      </div>
+
+      <p id="conteudoModalDescricao" class="conteudo-modal-descricao">
+      </p>
+
+      <button
+        type="button"
+        id="conteudoModalBotao"
+        class="conteudo-modal-botao"
+      >
+        Acessar
+      </button>
+
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+function criarModalBibliotecaConteudos() {
+  if (document.getElementById('modalBibliotecaConteudos')) return;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.id = 'modalBibliotecaConteudos';
+
+  modal.innerHTML = `
+    <div class="modal-content biblioteca-modal">
+
+      <div class="biblioteca-header">
+
+        <div>
+          <h2 id="bibliotecaTitulo">
+            Biblioteca
+          </h2>
+
+          <p id="bibliotecaDescricao">
+            Consulte os materiais disponíveis.
+          </p>
+        </div>
+
+        <button onclick="fecharModal('modalBibliotecaConteudos')" class="biblioteca-fechar">
+          X
+        </button>
+
+      </div>
+
+      <div class="biblioteca-search-row">
+        <input
+          type="text"
+          id="bibliotecaBusca"
+          placeholder="Buscar por nome, descrição ou tipo..."
+          onkeyup="filtrarBibliotecaConteudos()"
+        />
+      </div>
+
+      <div id="bibliotecaGrid" class="biblioteca-grid">
+      </div>
+
+      <div id="bibliotecaVazia" class="biblioteca-vazia" style="display:none;">
+        Nenhum conteúdo encontrado para esta busca.
+      </div>
+
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+function abrirModalConteudo(conteudo) {
+  if (!conteudo) {
+    alert('Conteúdo não encontrado.');
+    return;
+  }
+
+  const titulo = document.getElementById('conteudoModalTitulo');
+  const categoria = document.getElementById('conteudoModalCategoria');
+  const descricao = document.getElementById('conteudoModalDescricao');
+  const imagemBox = document.getElementById('conteudoModalImagemBox');
+  const imagem = document.getElementById('conteudoModalImagem');
+  const botao = document.getElementById('conteudoModalBotao');
+
+  if (titulo) titulo.innerText = conteudo.titulo || 'Conteúdo';
+
+  if (categoria) {
+    categoria.innerText = `${conteudo.categoria || ''} ${conteudo.tipo ? '• ' + conteudo.tipo : ''}`;
+  }
+
+  if (descricao) {
+    descricao.innerText = conteudo.descricao || '';
+  }
+
+  const imagemCapa = String(conteudo.imagem_capa || '').trim();
+
+  if (imagemCapa && imagemEhValida(imagemCapa)) {
+    imagem.src = imagemCapa;
+    imagemBox.style.display = 'block';
+  } else {
+    imagem.src = '';
+    imagemBox.style.display = 'none';
+  }
+
+  if (botao) {
+    botao.style.display = 'block';
+    botao.innerText = conteudo.botao_texto || 'Acessar conteúdo';
+    botao.onclick = () => abrirLinkConteudo(conteudo);
+  }
+
+  abrirModal('modalConteudoGeral');
+}
+
+function abrirBibliotecaConteudos(categoria, tituloPadrao) {
+  const lista = obterConteudosPorCategoria(categoria);
+
+  if (!lista.length) {
+    alert('Nenhum conteúdo ativo cadastrado para esta seção.');
+    return;
+  }
+
+  bibliotecaConteudosAtual = lista;
+
+  const titulo = document.getElementById('bibliotecaTitulo');
+  const descricao = document.getElementById('bibliotecaDescricao');
+  const busca = document.getElementById('bibliotecaBusca');
+
+  if (titulo) {
+    titulo.innerText = tituloPadrao || 'Biblioteca';
+  }
+
+  if (descricao) {
+    if (categoria === 'OPERACIONAL') {
+      descricao.innerText = 'Encontre treinamentos, tutoriais e materiais operacionais disponíveis para consulta.';
+    } else if (categoria === 'APLICATIVO') {
+      descricao.innerText = 'Veja os aplicativos, sistemas e atalhos úteis para acesso, download ou suporte.';
+    } else {
+      descricao.innerText = 'Consulte os conteúdos disponíveis.';
+    }
   }
 
   if (busca) {
-    lista = lista.filter(ticket => {
+    busca.value = '';
+    busca.placeholder = categoria === 'APLICATIVO'
+      ? 'Buscar aplicativo, sistema ou atalho...'
+      : 'Buscar treinamento ou material...';
+  }
+
+  renderizarBibliotecaConteudos(bibliotecaConteudosAtual);
+
+  abrirModal('modalBibliotecaConteudos');
+}
+
+function filtrarBibliotecaConteudos() {
+  const termo = String(document.getElementById('bibliotecaBusca')?.value || '')
+    .trim()
+    .toLowerCase();
+
+  let lista = [...bibliotecaConteudosAtual];
+
+  if (termo) {
+    lista = lista.filter(item => {
+      const titulo = String(item.titulo || '').toLowerCase();
+      const descricao = String(item.descricao || '').toLowerCase();
+      const tipo = String(item.tipo || '').toLowerCase();
+
       return (
-        String(ticket.nome || "").toLowerCase().includes(busca) ||
-        String(ticket.email || "").toLowerCase().includes(busca) ||
-        String(ticket.telefone || "").toLowerCase().includes(busca) ||
-        String(ticket.observacao || "").toLowerCase().includes(busca) ||
-        String(ticket.regional || "").toLowerCase().includes(busca) ||
-        String(obterNomeCooperativa(ticket.cooperativa_id) || "").toLowerCase().includes(busca)
+        titulo.includes(termo) ||
+        descricao.includes(termo) ||
+        tipo.includes(termo)
       );
     });
   }
 
-  lista.sort((a, b) => {
-    const dataA = new Date(a.data_solicitacao || 0).getTime();
-    const dataB = new Date(b.data_solicitacao || 0).getTime();
-    return dataB - dataA;
-  });
+  renderizarBibliotecaConteudos(lista);
+}
 
-  corpo.innerHTML = "";
+function renderizarBibliotecaConteudos(lista) {
+  const grid = document.getElementById('bibliotecaGrid');
+  const vazio = document.getElementById('bibliotecaVazia');
+
+  if (!grid) return;
+
+  grid.innerHTML = '';
 
   if (!lista.length) {
-    corpo.innerHTML = `
+    if (vazio) vazio.style.display = 'block';
+    return;
+  }
+
+  if (vazio) vazio.style.display = 'none';
+
+  grid.innerHTML = lista.map(item => criarCardBiblioteca(item)).join('');
+}
+
+function criarCardBiblioteca(item) {
+  const imagem = String(item.imagem_capa || '').trim();
+  const temImagem = imagem && imagemEhValida(imagem);
+
+  const imagemHtml = temImagem
+    ? `
+      <img
+        src="${imagem}"
+        alt="${item.titulo || 'Conteúdo'}"
+        class="biblioteca-card-img"
+      />
+    `
+    : `
+      <div class="biblioteca-card-placeholder">
+        <span>${obterIconeTipo(item.tipo)}</span>
+      </div>
+    `;
+
+  return `
+    <div class="biblioteca-card">
+
+      <div class="biblioteca-card-media">
+        ${imagemHtml}
+      </div>
+
+      <div class="biblioteca-card-body">
+
+        <span class="biblioteca-card-tipo">
+          ${item.tipo || 'LINK'}
+        </span>
+
+        <h3>
+          ${item.titulo || 'Conteúdo'}
+        </h3>
+
+        <p>
+          ${item.descricao || 'Material disponível para acesso.'}
+        </p>
+
+      </div>
+
+      <div class="biblioteca-card-footer">
+        <button
+          type="button"
+          onclick="abrirLinkConteudoPorId('${item.id}')"
+        >
+          ${item.botao_texto || 'Acessar'}
+        </button>
+      </div>
+
+    </div>
+  `;
+}
+
+function imagemEhValida(caminho) {
+  const valor = String(caminho || '').trim();
+
+  if (!valor) return false;
+
+  if (valor === 'link_da_imagem') return false;
+
+  return (
+    valor.startsWith('http://') ||
+    valor.startsWith('https://') ||
+    valor.startsWith('assets/')
+  );
+}
+
+function obterIconeTipo(tipo) {
+  const tipoTexto = String(tipo || '').toUpperCase();
+
+  if (tipoTexto === 'VIDEO') return '▶';
+  if (tipoTexto === 'PDF') return 'PDF';
+  if (tipoTexto === 'PASTA') return '📁';
+  if (tipoTexto === 'WHATSAPP') return '☏';
+  if (tipoTexto === 'IMAGEM') return 'IMG';
+  if (tipoTexto === 'APP') return 'APP';
+  if (tipoTexto === 'APLICATIVO') return '↗';
+
+  return '↗';
+}
+
+function abrirLinkConteudoPorId(id) {
+  const conteudo = conteudosCache.find(item =>
+    String(item.id) === String(id)
+  );
+
+  abrirLinkConteudo(conteudo);
+}
+
+function abrirLinkConteudo(conteudo) {
+  if (!conteudo) {
+    alert('Conteúdo não encontrado.');
+    return;
+  }
+
+  const link = String(conteudo.arquivo_link || '').trim();
+
+  if (!link || !link.startsWith('http')) {
+    alert('Link do conteúdo não configurado corretamente.');
+    return;
+  }
+
+  window.open(link, '_blank');
+}
+
+/* =========================
+   PROCESSOS ADMINISTRATIVOS
+========================= */
+
+async function carregarConsultores() {
+  try {
+    const resultado = await apiPost({
+      action: 'listarConsultores',
+      perfil: usuarioLogado?.perfil || '',
+      cooperativa_id: usuarioLogado?.cooperativa_id || ''
+    });
+
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao carregar processos.');
+      return;
+    }
+
+    consultoresCache = resultado.consultores || [];
+
+    filtrarProcessos();
+
+  } catch (erro) {
+    console.error(erro);
+    alert('Erro ao carregar processos.');
+  }
+}
+
+function filtrarProcessos() {
+  const filtroStatus = document.getElementById('filtroStatusProcesso')?.value || '';
+
+  let lista = [...consultoresCache];
+
+  if (filtroStatus) {
+    lista = lista.filter(item =>
+      String(item.status || '').toUpperCase() === filtroStatus
+    );
+  }
+
+  renderizarProcessos(lista);
+}
+
+function renderizarProcessos(lista) {
+  const tbody = document.getElementById('tabelaProcessosBody');
+
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  if (!lista.length) {
+    tbody.innerHTML = `
       <tr>
-        <td colspan="9" class="empty-table">Nenhum processo encontrado.</td>
+        <td colspan="7" class="empty-table">
+          Nenhum processo encontrado.
+        </td>
       </tr>
     `;
     return;
   }
 
-  lista.forEach(ticket => {
-    const tr = document.createElement("tr");
+  lista.forEach(item => {
+    const tr = document.createElement('tr');
+
+    const status = String(item.status || '').toUpperCase();
+
+    let statusClass = 'status pendente';
+
+    if (status === 'CADASTRO REALIZADO') {
+      statusClass = 'status ativo';
+    }
+
+    if (status === 'RECUSADO') {
+      statusClass = 'status inativo';
+    }
+
+    const acoes = usuarioEhAdmin()
+      ? `
+        <button onclick="atualizarStatusProcesso('${item.id}', 'CADASTRO REALIZADO')">
+          Concluir
+        </button>
+
+        <button onclick="atualizarStatusProcesso('${item.id}', 'PENDENTE')">
+          Pendente
+        </button>
+
+        <button class="danger" onclick="atualizarStatusProcesso('${item.id}', 'RECUSADO')">
+          Recusar
+        </button>
+
+        <button class="danger" onclick="excluirTicketConsultor('${item.id}')">
+          Excluir
+        </button>
+      `
+      : `
+        <button disabled>
+          Acompanhar
+        </button>
+      `;
 
     tr.innerHTML = `
-      <td>${escapar(ticket.nome || "-")}</td>
-      <td>${escapar(ticket.email || "-")}</td>
-      <td>${escapar(ticket.telefone || "-")}</td>
-      <td>${escapar(obterNomeCooperativa(ticket.cooperativa_id) || ticket.cooperativa || "-")}</td>
       <td>
-        <span class="badge ${classeStatusTicket(ticket.status)}">
-          ${escapar(ticket.status || "-")}
+        <strong>${item.nome || '-'}</strong>
+        <small>${item.email || '-'}</small>
+        <small>${item.telefone || '-'}</small>
+      </td>
+
+      <td>${obterNomeCooperativa(item.cooperativa_id)}</td>
+
+      <td>${item.regional || '-'}</td>
+
+      <td>
+        <span class="${statusClass}">
+          ${item.status || '-'}
         </span>
       </td>
-      <td>${escapar(ticket.solicitado_por || ticket.nome_solicitante || "-")}</td>
-      <td>${formatarData(ticket.data_solicitacao)}</td>
-      <td>${escapar(ticket.observacao || "-")}</td>
-      <td class="acoes">
-        ${
-          podeAlterarStatusTicket()
-            ? `
-              <button type="button" class="btn-acao" onclick="alterarStatusTicket('${escaparAtributo(ticket.id)}', '${STATUS_TICKET.CADASTRO_REALIZADO}')">
-                Realizado
-              </button>
-              <button type="button" class="btn-acao secundario" onclick="alterarStatusTicket('${escaparAtributo(ticket.id)}', '${STATUS_TICKET.RECUSADO}')">
-                Recusar
-              </button>
-            `
-            : ""
-        }
 
-        ${
-          podeExcluirTicket()
-            ? `
-              <button type="button" class="btn-acao perigo" onclick="excluirTicket('${escaparAtributo(ticket.id)}')">
-                Excluir
-              </button>
-            `
-            : ""
-        }
+      <td>${formatarData(item.data_solicitacao)}</td>
+
+      <td>${item.observacao || '-'}</td>
+
+      <td class="acoes">
+        ${acoes}
       </td>
     `;
 
-    corpo.appendChild(tr);
+    tbody.appendChild(tr);
   });
 }
 
-async function alterarStatusTicket(id, novoStatus) {
-  if (!podeAlterarStatusTicket()) {
-    mostrarToast("Você não tem permissão para alterar status de processo.", "erro");
-    return;
-  }
-
-  const ticket = tickets.find(t => String(t.id) === String(id));
-
-  if (!ticket) {
-    mostrarToast("Processo não encontrado.", "erro");
-    return;
-  }
-
-  const confirmar = confirm(`Deseja alterar o status deste processo para "${novoStatus}"?`);
-
-  if (!confirmar) return;
+async function atualizarStatusProcesso(id, status) {
+  const observacao = prompt(
+    `Observação administrativa para "${status}" (opcional):`
+  );
 
   try {
-    await chamarApi("atualizarStatusConsultor", {
+    const resultado = await apiPost({
+      action: 'atualizarStatusConsultor',
       id,
-      status: novoStatus,
-      atualizado_por: usuarioLogado.email,
+      status,
+      observacao: observacao || '',
+      atualizado_por: usuarioLogado?.nome || ''
     });
 
-    mostrarToast("Status atualizado com sucesso.", "sucesso");
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao atualizar processo.');
+      return;
+    }
 
-    await carregarTickets();
-    renderizarTickets();
-    renderizarDashboard();
+    alert(resultado.message || 'Processo atualizado com sucesso.');
+
+    carregarConsultores();
+
   } catch (erro) {
     console.error(erro);
+    alert('Erro ao atualizar processo.');
   }
 }
 
-async function excluirTicket(id) {
-  if (!podeExcluirTicket()) {
-    mostrarToast("Você não tem permissão para excluir solicitações.", "erro");
-    return;
-  }
-
-  const ticket = tickets.find(t => String(t.id) === String(id));
-
-  if (!ticket) {
-    mostrarToast("Solicitação não encontrada.", "erro");
+async function excluirTicketConsultor(id) {
+  if (!usuarioEhAdmin()) {
+    alert('Você não tem permissão para excluir solicitações.');
     return;
   }
 
   const confirmar = confirm(
-    `Deseja realmente excluir este ticket?\n\nEssa ação remove apenas a solicitação, não remove o usuário.`
+    'Tem certeza que deseja excluir esta solicitação?\n\nEssa ação remove apenas o ticket da aba CONSULTORES e não exclui nenhum usuário.'
   );
 
   if (!confirmar) return;
 
   try {
-    await chamarApi("excluirTicketConsultor", {
+    const resultado = await apiPost({
+      action: 'excluirTicketConsultor',
       id,
-      perfil: usuarioLogado.perfil,
-      excluido_por: usuarioLogado.email,
+      excluido_por: usuarioLogado?.nome || '',
+      perfil: usuarioLogado?.perfil || ''
     });
 
-    mostrarToast("Ticket excluído com sucesso.", "sucesso");
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao excluir solicitação.');
+      return;
+    }
 
-    await carregarTickets();
-    renderizarTickets();
-    renderizarDashboard();
+    alert(resultado.message || 'Solicitação excluída com sucesso.');
+
+    carregarConsultores();
+
   } catch (erro) {
     console.error(erro);
+    alert('Erro ao excluir solicitação.');
   }
 }
 
-/* =========================================================
-   COMPATIBILIDADE COM FUNÇÕES ANTIGAS DO HTML
-========================================================= */
-
-function filtrarUsuarios() {
-  renderizarUsuarios();
-}
-
-function filtrarProcessos() {
-  renderizarTickets();
-}
-
-function carregarConsultores() {
-  carregarTickets().then(() => {
-    renderizarTickets();
-    renderizarDashboard();
-  });
-}
-
-function salvarConsultor(event) {
-  salvarSolicitacao(event);
-}
-
-/* =========================================================
-   NORMALIZAÇÃO
-========================================================= */
-
-function normalizarUsuario(usuario = {}) {
-  return {
-    id:
-      usuario.id ||
-      usuario.ID ||
-      usuario.codigo ||
-      usuario.Codigo ||
-      usuario.codigo_usuario ||
-      usuario.CodigoUsuario ||
-      usuario["Código"] ||
-      "",
-
-    nome:
-      usuario.nome ||
-      usuario.Nome ||
-      usuario.name ||
-      usuario.Name ||
-      usuario["Nome"] ||
-      usuario["NOME"] ||
-      "",
-
-    email:
-      usuario.email ||
-      usuario.Email ||
-      usuario.EMAIL ||
-      usuario["E-mail"] ||
-      usuario["e-mail"] ||
-      usuario["Email"] ||
-      usuario["EMAIL"] ||
-      "",
-
-    telefone:
-      usuario.telefone ||
-      usuario.Telefone ||
-      usuario.TELEFONE ||
-      usuario.whatsapp ||
-      usuario.Whatsapp ||
-      usuario.WHATSAPP ||
-      usuario["Telefone"] ||
-      usuario["WhatsApp"] ||
-      "",
-
-    senha:
-      usuario.senha ||
-      usuario.Senha ||
-      usuario.SENHA ||
-      "",
-
-    perfil: normalizarPerfil(
-      usuario.perfil ||
-      usuario.Perfil ||
-      usuario.PERFIL ||
-      usuario["Perfil"] ||
-      ""
-    ),
-
-    cooperativa_id:
-      usuario.cooperativa_id ||
-      usuario.id_cooperativa ||
-      usuario.cooperativaId ||
-      usuario.CooperativaID ||
-      usuario.codigo_cooperativa ||
-      usuario.CodigoCooperativa ||
-      usuario["Cooperativa ID"] ||
-      usuario["ID Cooperativa"] ||
-      usuario["Código Cooperativa"] ||
-      "",
-
-    cooperativa:
-      usuario.cooperativa ||
-      usuario.Cooperativa ||
-      usuario.COOPERATIVA ||
-      usuario.nome_cooperativa ||
-      usuario.NomeCooperativa ||
-      usuario["Cooperativa"] ||
-      usuario["Nome Cooperativa"] ||
-      "",
-
-    permissoes:
-      usuario.permissoes ||
-      usuario.Permissoes ||
-      usuario.Permissões ||
-      usuario["Permissões"] ||
-      "",
-
-    status: normalizarStatus(
-      usuario.status ||
-      usuario.Status ||
-      usuario.STATUS ||
-      usuario["Status"] ||
-      STATUS_USUARIO.ATIVO
-    ),
-
-    data_criacao:
-      usuario.data_criacao ||
-      usuario.criado_em ||
-      usuario.CriadoEm ||
-      usuario["Data Criação"] ||
-      "",
-
-    ultimo_acesso:
-      usuario.ultimo_acesso ||
-      usuario.UltimoAcesso ||
-      usuario["Último Acesso"] ||
-      "",
-  };
-}
-
-function normalizarCooperativa(coop = {}) {
-  return {
-    id:
-      coop.id ||
-      coop.ID ||
-      coop.codigo ||
-      coop.codigo_cooperativa ||
-      coop.CodigoCooperativa ||
-      coop.cooperativa_id ||
-      "",
-
-    nome_cooperativa:
-      coop.nome_cooperativa ||
-      coop.NomeCooperativa ||
-      coop.nome ||
-      coop.Nome ||
-      coop.cooperativa ||
-      coop.Cooperativa ||
-      "",
-
-    regional:
-      coop.regional ||
-      coop.Regional ||
-      coop.regional_responsavel ||
-      coop.RegionalResponsavel ||
-      "",
-
-    regional_responsavel:
-      coop.regional_responsavel ||
-      coop.RegionalResponsavel ||
-      coop.regional ||
-      "",
-
-    cidade:
-      coop.cidade ||
-      coop.Cidade ||
-      "",
-
-    status: normalizarStatus(
-      coop.status ||
-      coop.Status ||
-      STATUS_USUARIO.ATIVO
-    ),
-
-    data_criacao:
-      coop.data_criacao ||
-      coop.criado_em ||
-      "",
-  };
-}
-
-function normalizarTicket(ticket = {}) {
-  return {
-    id:
-      ticket.id ||
-      ticket.ID ||
-      ticket.codigo ||
-      ticket.codigo_ticket ||
-      "",
-
-    usuario_id:
-      ticket.usuario_id ||
-      ticket.UsuarioID ||
-      ticket.codigo_usuario ||
-      "",
-
-    nome:
-      ticket.nome ||
-      ticket.Nome ||
-      "",
-
-    email:
-      ticket.email ||
-      ticket.Email ||
-      "",
-
-    telefone:
-      ticket.telefone ||
-      ticket.Telefone ||
-      ticket.whatsapp ||
-      "",
-
-    cooperativa_id:
-      ticket.cooperativa_id ||
-      ticket.id_cooperativa ||
-      ticket.cooperativaId ||
-      ticket.CooperativaID ||
-      ticket.codigo_cooperativa ||
-      "",
-
-    cooperativa:
-      ticket.cooperativa ||
-      ticket.Cooperativa ||
-      ticket.nome_cooperativa ||
-      ticket.NomeCooperativa ||
-      "",
-
-    regional:
-      ticket.regional ||
-      ticket.Regional ||
-      "",
-
-    status: normalizarStatus(
-      ticket.status ||
-      ticket.Status ||
-      STATUS_TICKET.PENDENTE
-    ),
-
-    observacao:
-      ticket.observacao ||
-      ticket.Observacao ||
-      ticket.observação ||
-      "",
-
-    solicitado_por:
-      ticket.solicitado_por ||
-      ticket.SolicitadoPor ||
-      "",
-
-    nome_solicitante:
-      ticket.nome_solicitante ||
-      ticket.NomeSolicitante ||
-      "",
-
-    perfil_solicitante:
-      ticket.perfil_solicitante ||
-      ticket.PerfilSolicitante ||
-      "",
-
-    data_solicitacao:
-      ticket.data_solicitacao ||
-      ticket.DataSolicitacao ||
-      ticket.criado_em ||
-      ticket.CriadoEm ||
-      "",
-
-    data_conclusao:
-      ticket.data_conclusao ||
-      ticket.DataConclusao ||
-      "",
-  };
-}
-
-/* =========================================================
-   AUXILIARES
-========================================================= */
-
-function obterNomeCooperativa(cooperativaId) {
-  if (!cooperativaId) return "";
-
-  const coop = cooperativas.find(c => String(c.id) === String(cooperativaId));
-
-  return coop?.nome_cooperativa || "";
-}
-
-function obterRegionalDaCooperativa(cooperativaId) {
-  if (!cooperativaId) return "";
-
-  const coop = cooperativas.find(c => String(c.id) === String(cooperativaId));
-
-  return coop?.regional || coop?.regional_responsavel || "";
-}
-
-function normalizarStatus(status) {
-  return String(status || "").trim().toUpperCase();
-}
-
-function normalizarPerfil(perfil) {
-  return String(perfil || "").trim().toUpperCase();
-}
-
-function formatarPerfil(perfil) {
-  const p = normalizarPerfil(perfil);
-
-  const mapa = {
-    CONSULTOR: "Consultor",
-    REGIONAL: "Regional",
-    ADMINISTRATIVO: "Administrativo",
-    SUPER_ADMIN: "Super Admin",
-  };
-
-  return mapa[p] || perfil || "";
-}
-
-function classeStatusUsuario(status) {
-  const s = normalizarStatus(status);
-
-  if (s === STATUS_USUARIO.ATIVO || s === "ATIVA") return "badge-sucesso";
-  if (s === STATUS_USUARIO.INATIVO || s === "INATIVA") return "badge-erro";
-
-  return "badge-neutro";
-}
-
-function classeStatusTicket(status) {
-  const s = normalizarStatus(status);
-
-  if (s === STATUS_TICKET.PENDENTE) return "badge-alerta";
-  if (s === STATUS_TICKET.CADASTRO_REALIZADO) return "badge-sucesso";
-  if (s === STATUS_TICKET.RECUSADO) return "badge-erro";
-
-  return "badge-neutro";
-}
-
-/* =========================================================
-   UI HELPERS
-========================================================= */
-
-function pegarValor(id) {
-  const elemento = document.getElementById(id);
-  return elemento ? String(elemento.value || "").trim() : "";
-}
-
-function preencherValor(id, valor) {
-  const elemento = document.getElementById(id);
-  if (elemento) elemento.value = valor ?? "";
-}
-
-function preencherTexto(id, texto) {
-  const elemento = document.getElementById(id);
-  if (elemento) elemento.textContent = texto ?? "";
-}
-
-function mostrarElemento(id) {
-  const elemento = document.getElementById(id);
-  if (elemento) elemento.style.display = "";
-}
-
-function ocultarElemento(id) {
-  const elemento = document.getElementById(id);
-  if (elemento) elemento.style.display = "none";
-}
-
-function controlarElementoPorPermissao(id, permitido) {
-  const elemento = document.getElementById(id);
-  if (!elemento) return;
-
-  elemento.style.display = permitido ? "" : "none";
-}
-
-function bloquearBotao(id, bloquear, texto) {
-  const botao = document.getElementById(id);
-
-  if (!botao) return;
-
-  botao.disabled = bloquear;
-
-  if (texto) {
-    botao.textContent = texto;
-  }
-}
-
-function mostrarLoading(ativo) {
-  const loading = document.getElementById("loading");
-
-  if (loading) {
-    loading.style.display = ativo ? "flex" : "none";
-  }
-}
+/* =========================
+   MODAIS
+========================= */
 
 function abrirModal(id) {
   const modal = document.getElementById(id);
 
-  if (!modal) return;
-
-  modal.classList.add("ativo");
-  modal.style.display = "flex";
+  if (modal) {
+    modal.style.display = 'flex';
+  }
 }
 
 function fecharModal(id) {
   const modal = document.getElementById(id);
 
-  if (!modal) return;
-
-  modal.classList.remove("ativo");
-  modal.style.display = "none";
-}
-
-function mostrarToast(mensagem, tipo = "info") {
-  let toast = document.getElementById("toast");
-
-  if (!toast) {
-    toast = document.createElement("div");
-    toast.id = "toast";
-    toast.className = "toast";
-    document.body.appendChild(toast);
+  if (modal) {
+    modal.style.display = 'none';
   }
-
-  toast.textContent = mensagem;
-  toast.className = `toast ativo ${tipo}`;
-
-  setTimeout(() => {
-    toast.classList.remove("ativo");
-  }, 3500);
 }
 
-function formatarData(data) {
-  if (!data) return "-";
+/* =========================
+   UTIL
+========================= */
 
-  const d = new Date(data);
+function setTexto(id, valor) {
+  const el = document.getElementById(id);
 
-  if (Number.isNaN(d.getTime())) {
-    return String(data);
+  if (el) {
+    el.innerText = valor;
   }
-
-  return d.toLocaleDateString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
 }
 
-function escapar(valor) {
-  return String(valor ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+function formatarData(valor) {
+  if (!valor) return '-';
+
+  try {
+    const data = new Date(valor);
+
+    if (isNaN(data.getTime())) {
+      return valor;
+    }
+
+    return data.toLocaleString('pt-BR');
+
+  } catch (erro) {
+    return valor;
+  }
 }
-
-function escaparAtributo(valor) {
-  return escapar(valor).replace(/`/g, "&#096;");
-}
-
-/* =========================================================
-   EXPOSIÇÃO GLOBAL PARA ONCLICK DO HTML
-========================================================= */
-
-window.fazerLogin = fazerLogin;
-window.sair = sair;
-
-window.abrirModal = abrirModal;
-window.fecharModal = fecharModal;
-
-window.editarUsuario = editarUsuario;
-window.alternarStatusUsuario = alternarStatusUsuario;
-window.salvarUsuario = salvarUsuario;
-window.abrirModalNovoUsuario = abrirModalNovoUsuario;
-
-window.editarCooperativa = editarCooperativa;
-window.salvarCooperativa = salvarCooperativa;
-window.abrirModalNovaCooperativa = abrirModalNovaCooperativa;
-
-window.abrirModalConsultor = abrirModalConsultor;
-window.salvarConsultor = salvarConsultor;
-window.alterarStatusTicket = alterarStatusTicket;
-window.excluirTicket = excluirTicket;
-
-window.filtrarUsuarios = filtrarUsuarios;
-window.filtrarProcessos = filtrarProcessos;
-window.carregarConsultores = carregarConsultores;
-window.carregarUsuarios = carregarUsuarios;
-window.carregarCooperativas = carregarCooperativas;
-window.carregarTickets = carregarTickets;
