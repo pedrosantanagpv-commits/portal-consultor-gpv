@@ -25,7 +25,7 @@
    - Acesso total.
 ========================================================= */
 
-const API_URL = "/api/proxy.js";
+const API_URL = "/api/proxy";
 
 let usuarioLogado = null;
 let usuarios = [];
