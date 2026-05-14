@@ -1,28 +1,12 @@
 /* =========================================================
-   CENTRAL DO CONSULTOR GPV — APP.JS
-   Versão atualizada com regras finais:
+   PORTAL CONSULTOR GPV — APP.JS
+   Compatível com o Google Apps Script atual
 
-   CONSULTOR
-   - Acessa a Central do Consultor.
-   - Não vê a área "Solicitar cadastro de consultor".
-   - Não pode solicitar cadastro de outro consultor.
-   - Não vê gestão geral de usuários/cooperativas.
-
-   REGIONAL
-   - Acessa a Central do Consultor.
-   - Vê somente a própria cooperativa.
-   - Vê somente os consultores da própria cooperativa.
-   - Pode solicitar cadastro de consultor apenas da própria cooperativa.
-   - Na seleção de cooperativa, aparece somente a dele.
-
-   ADMINISTRATIVO
-   - Vê tudo.
-   - Pode solicitar cadastro de consultor em qualquer cooperativa.
-   - Pode filtrar tickets.
-   - Pode excluir ticket.
-
-   SUPER ADMIN
-   - Acesso total.
+   Regras:
+   - CONSULTOR: acessa a Central, não solicita cadastro.
+   - REGIONAL: vê consultores da própria cooperativa e solicita cadastro.
+   - ADMINISTRATIVO: vê tudo, solicita, altera status e exclui tickets.
+   - SUPER_ADMIN: acesso total.
 ========================================================= */
 
 const API_URL = "/api/proxy";
@@ -31,6 +15,7 @@ let usuarioLogado = null;
 let usuarios = [];
 let cooperativas = [];
 let tickets = [];
+let conteudosGerais = [];
 
 const PERFIS = {
   CONSULTOR: "CONSULTOR",
@@ -80,19 +65,49 @@ function configurarEventosGlobais() {
     btnSair.addEventListener("click", sair);
   }
 
+  const btnAtualizarDados = document.getElementById("btnAtualizarDados");
+  if (btnAtualizarDados) {
+    btnAtualizarDados.addEventListener("click", carregarDadosIniciais);
+  }
+
+  const formUsuario = document.getElementById("formUsuario");
+  if (formUsuario) {
+    formUsuario.addEventListener("submit", salvarUsuario);
+  }
+
+  const btnNovoUsuario = document.getElementById("btnNovoUsuario");
+  if (btnNovoUsuario) {
+    btnNovoUsuario.addEventListener("click", abrirFormularioNovoUsuario);
+  }
+
+  const btnFecharModalUsuario = document.getElementById("btnFecharModalUsuario");
+  if (btnFecharModalUsuario) {
+    btnFecharModalUsuario.addEventListener("click", () => fecharModal("modalUsuario"));
+  }
+
+  const formCooperativa = document.getElementById("formCooperativa");
+  if (formCooperativa) {
+    formCooperativa.addEventListener("submit", salvarCooperativa);
+  }
+
+  const btnNovaCooperativa = document.getElementById("btnNovaCooperativa");
+  if (btnNovaCooperativa) {
+    btnNovaCooperativa.addEventListener("click", abrirFormularioNovaCooperativa);
+  }
+
   const formSolicitacao = document.getElementById("formSolicitacao");
   if (formSolicitacao) {
     formSolicitacao.addEventListener("submit", salvarSolicitacao);
   }
 
-  const filtroStatusTicket = document.getElementById("filtroStatusTicket");
-  if (filtroStatusTicket) {
-    filtroStatusTicket.addEventListener("change", renderizarTickets);
+  const selectCooperativaSolicitacao = document.getElementById("cooperativaSolicitacao");
+  if (selectCooperativaSolicitacao) {
+    selectCooperativaSolicitacao.addEventListener("change", carregarUsuariosDaCooperativaSelecionada);
   }
 
-  const filtroBuscaTicket = document.getElementById("filtroBuscaTicket");
-  if (filtroBuscaTicket) {
-    filtroBuscaTicket.addEventListener("input", renderizarTickets);
+  const filtroBuscaUsuario = document.getElementById("filtroBuscaUsuario");
+  if (filtroBuscaUsuario) {
+    filtroBuscaUsuario.addEventListener("input", renderizarUsuarios);
   }
 
   const filtroStatusUsuario = document.getElementById("filtroStatusUsuario");
@@ -105,34 +120,14 @@ function configurarEventosGlobais() {
     filtroPerfilUsuario.addEventListener("change", renderizarUsuarios);
   }
 
-  const filtroBuscaUsuario = document.getElementById("filtroBuscaUsuario");
-  if (filtroBuscaUsuario) {
-    filtroBuscaUsuario.addEventListener("input", renderizarUsuarios);
+  const filtroBuscaTicket = document.getElementById("filtroBuscaTicket");
+  if (filtroBuscaTicket) {
+    filtroBuscaTicket.addEventListener("input", renderizarTickets);
   }
 
-  const selectCooperativaSolicitacao = document.getElementById("cooperativaSolicitacao");
-  if (selectCooperativaSolicitacao) {
-    selectCooperativaSolicitacao.addEventListener("change", carregarUsuariosDaCooperativaSelecionada);
-  }
-
-  const btnAtualizarDados = document.getElementById("btnAtualizarDados");
-  if (btnAtualizarDados) {
-    btnAtualizarDados.addEventListener("click", carregarDadosIniciais);
-  }
-
-  const btnFecharModalUsuario = document.getElementById("btnFecharModalUsuario");
-  if (btnFecharModalUsuario) {
-    btnFecharModalUsuario.addEventListener("click", () => fecharModal("modalUsuario"));
-  }
-
-  const formUsuario = document.getElementById("formUsuario");
-  if (formUsuario) {
-    formUsuario.addEventListener("submit", salvarUsuario);
-  }
-
-  const btnNovoUsuario = document.getElementById("btnNovoUsuario");
-  if (btnNovoUsuario) {
-    btnNovoUsuario.addEventListener("click", abrirFormularioNovoUsuario);
+  const filtroStatusTicket = document.getElementById("filtroStatusTicket");
+  if (filtroStatusTicket) {
+    filtroStatusTicket.addEventListener("change", renderizarTickets);
   }
 }
 
@@ -140,23 +135,44 @@ function configurarEventosGlobais() {
    API
 ========================================================= */
 
-async function chamarApi(acao, dados = {}) {
+async function chamarApi(action, dados = {}) {
   try {
+    console.log("CHAMANDO API:", {
+      url: API_URL,
+      action,
+      dados,
+    });
+
     const resposta = await fetch(API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        acao,
-        dados,
+        action,
+        ...dados,
       }),
     });
 
-    const json = await resposta.json();
+    console.log("STATUS DA RESPOSTA:", resposta.status);
 
-    if (!json || json.status === "erro" || json.status === "error") {
-      throw new Error(json?.mensagem || json?.message || "Erro ao processar solicitação.");
+    const texto = await resposta.text();
+
+    console.log("TEXTO BRUTO DA API:", texto);
+
+    let json;
+
+    try {
+      json = JSON.parse(texto);
+    } catch (erroJson) {
+      console.error("A resposta não é JSON válido:", texto);
+      throw new Error("O servidor não retornou um JSON válido.");
+    }
+
+    console.log("JSON DA API:", json);
+
+    if (!json || json.success === false || json.status === "erro" || json.status === "error") {
+      throw new Error(json?.message || json?.mensagem || "Erro ao processar solicitação.");
     }
 
     return json;
@@ -174,8 +190,10 @@ async function chamarApi(acao, dados = {}) {
 async function fazerLogin(event) {
   event.preventDefault();
 
-  const email = pegarValor("email");
-  const senha = pegarValor("senha");
+  console.log("FUNÇÃO fazerLogin FOI CHAMADA");
+
+  const email = pegarValor("email") || pegarValor("loginEmail");
+  const senha = pegarValor("senha") || pegarValor("loginSenha");
 
   if (!email || !senha) {
     mostrarToast("Informe e-mail e senha.", "erro");
@@ -190,19 +208,23 @@ async function fazerLogin(event) {
       senha,
     });
 
-    usuarioLogado = normalizarUsuario(resposta.usuario || resposta.dados || resposta);
+    console.log("RESPOSTA LOGIN:", resposta);
+
+    usuarioLogado = normalizarUsuario(resposta.usuario || resposta.dados || resposta.data || resposta);
 
     if (!usuarioLogado || !usuarioLogado.email) {
+      console.error("Usuário não encontrado na resposta:", resposta);
       mostrarToast("Não foi possível validar o usuário.", "erro");
       return;
     }
 
-    if (String(usuarioLogado.status || "").toUpperCase() !== STATUS_USUARIO.ATIVO) {
+    if (normalizarStatus(usuarioLogado.status) !== STATUS_USUARIO.ATIVO) {
       mostrarToast("Usuário inativo. Procure o administrativo.", "erro");
       return;
     }
 
     localStorage.setItem("usuarioLogadoGPV", JSON.stringify(usuarioLogado));
+
     abrirSistema();
   } catch (erro) {
     console.error(erro);
@@ -231,6 +253,7 @@ function sair() {
   usuarios = [];
   cooperativas = [];
   tickets = [];
+  conteudosGerais = [];
 
   mostrarTelaLogin();
 }
@@ -255,11 +278,15 @@ function mostrarTelaSistema() {
 }
 
 function preencherDadosUsuarioLogado() {
-  preencherTexto("nomeUsuarioLogado", usuarioLogado?.nome || "");
+  preencherTexto("nomeUsuarioLogado", usuarioLogado?.nome || "Usuário");
   preencherTexto("perfilUsuarioLogado", formatarPerfil(usuarioLogado?.perfil || ""));
 
-  const cooperativaNome = obterNomeCooperativa(usuarioLogado?.cooperativa_id);
-  preencherTexto("cooperativaUsuarioLogado", cooperativaNome || "");
+  const cooperativaNome =
+    obterNomeCooperativa(usuarioLogado?.cooperativa_id) ||
+    usuarioLogado?.cooperativa ||
+    "Sem cooperativa";
+
+  preencherTexto("cooperativaUsuarioLogado", cooperativaNome);
 }
 
 /* =========================================================
@@ -267,7 +294,7 @@ function preencherDadosUsuarioLogado() {
 ========================================================= */
 
 function perfilAtual() {
-  return String(usuarioLogado?.perfil || "").trim().toUpperCase();
+  return normalizarPerfil(usuarioLogado?.perfil || "");
 }
 
 function isConsultor() {
@@ -307,7 +334,7 @@ function podeVerAreaUsuarios() {
 }
 
 function podeVerAreaTickets() {
-  return podeVerTudo() || isRegional() || isConsultor();
+  return podeVerTudo() || isRegional();
 }
 
 function podeAlterarStatusTicket() {
@@ -338,13 +365,13 @@ function podeSolicitarParaUsuario(usuario) {
   if (!podeSolicitarCadastroConsultor()) return false;
 
   if (podeVerTudo()) {
-    return String(usuario.perfil).toUpperCase() === PERFIS.CONSULTOR;
+    return normalizarPerfil(usuario.perfil) === PERFIS.CONSULTOR;
   }
 
   if (isRegional()) {
     return (
       String(usuario.cooperativa_id) === String(usuarioLogado?.cooperativa_id) &&
-      String(usuario.perfil).toUpperCase() === PERFIS.CONSULTOR
+      normalizarPerfil(usuario.perfil) === PERFIS.CONSULTOR
     );
   }
 
@@ -361,14 +388,19 @@ function aplicarPermissoesVisuais() {
   controlarElementoPorPermissao("areaTickets", podeVerAreaTickets());
   controlarElementoPorPermissao("areaSolicitacaoCadastro", podeSolicitarCadastroConsultor());
 
+  controlarElementoPorPermissao("menuUsuarios", podeVerAreaUsuarios());
+  controlarElementoPorPermissao("menuCooperativas", podeGerenciarCooperativas());
+  controlarElementoPorPermissao("menuProcessos", podeVerAreaTickets());
+
   controlarElementoPorPermissao("btnNovoUsuario", podeGerenciarUsuarios());
   controlarElementoPorPermissao("btnNovaCooperativa", podeGerenciarCooperativas());
+  controlarElementoPorPermissao("btnAbrirSolicitacaoCadastro", podeSolicitarCadastroConsultor());
 
   controlarElementoPorPermissao("filtroPerfilUsuario", podeVerTudo());
 
   const tituloSolicitacao = document.getElementById("tituloSolicitacao");
   if (tituloSolicitacao) {
-    tituloSolicitacao.textContent = "Solicitar cadastro de consultor";
+    tituloSolicitacao.textContent = "Solicitar Cadastro de Consultor";
   }
 
   const textoAjudaSolicitacao = document.getElementById("textoAjudaSolicitacao");
@@ -392,12 +424,14 @@ async function carregarDadosIniciais() {
     await carregarCooperativas();
     await carregarUsuarios();
     await carregarTickets();
+    await carregarPalavraChave();
 
     configurarFormularioSolicitacao();
     renderizarDashboard();
     renderizarUsuarios();
-    renderizarTickets();
     renderizarCooperativas();
+    renderizarTickets();
+    preencherDadosUsuarioLogado();
   } catch (erro) {
     console.error(erro);
   } finally {
@@ -420,10 +454,30 @@ async function carregarUsuarios() {
 }
 
 async function carregarTickets() {
-  const resposta = await chamarApi("listarTickets");
-  const lista = resposta.tickets || resposta.dados || [];
+  if (isConsultor()) {
+    tickets = [];
+    return;
+  }
+
+  const resposta = await chamarApi("listarConsultores", {
+    perfil: usuarioLogado?.perfil || "",
+    cooperativa_id: usuarioLogado?.cooperativa_id || "",
+    usuario_logado_id: usuarioLogado?.id || "",
+  });
+
+  const lista = resposta.consultores || resposta.tickets || resposta.dados || [];
 
   tickets = lista.map(normalizarTicket);
+}
+
+async function carregarPalavraChave() {
+  try {
+    const resposta = await chamarApi("buscarPalavraChave");
+    preencherTexto("palavraChaveDia", resposta.palavra || "---");
+  } catch (erro) {
+    console.error(erro);
+    preencherTexto("palavraChaveDia", "---");
+  }
 }
 
 /* =========================================================
@@ -449,10 +503,23 @@ function renderizarDashboard() {
 
   preencherTexto("cardUsuariosAtivos", ativos);
   preencherTexto("cardUsuariosInativos", inativos);
+
+  preencherTexto("dashUsuarios", usuariosPermitidos.length);
+  preencherTexto("dashAtivos", ativos);
+  preencherTexto("dashConsultores", usuariosPermitidos.filter(u => normalizarPerfil(u.perfil) === PERFIS.CONSULTOR).length);
+  preencherTexto("dashRegionais", usuariosPermitidos.filter(u => normalizarPerfil(u.perfil) === PERFIS.REGIONAL).length);
+  preencherTexto("dashCooperativas", cooperativas.length);
+
+  preencherTexto("miniTotalUsuarios", usuariosPermitidos.length);
+  preencherTexto("miniUsuariosAtivos", ativos);
+  preencherTexto("miniUsuariosInativos", inativos);
+  preencherTexto("miniAdmins", usuariosPermitidos.filter(u => normalizarPerfil(u.perfil) === PERFIS.ADMINISTRATIVO || normalizarPerfil(u.perfil) === PERFIS.SUPER_ADMIN).length);
+  preencherTexto("miniRegionais", usuariosPermitidos.filter(u => normalizarPerfil(u.perfil) === PERFIS.REGIONAL).length);
+  preencherTexto("miniConsultores", usuariosPermitidos.filter(u => normalizarPerfil(u.perfil) === PERFIS.CONSULTOR).length);
 }
 
 /* =========================================================
-   USUÁRIOS / CONSULTORES
+   USUÁRIOS
 ========================================================= */
 
 function filtrarUsuariosPorPermissao(lista) {
@@ -462,7 +529,7 @@ function filtrarUsuariosPorPermissao(lista) {
     return lista.filter(usuario => {
       return (
         String(usuario.cooperativa_id) === String(usuarioLogado?.cooperativa_id) &&
-        String(usuario.perfil).toUpperCase() === PERFIS.CONSULTOR
+        normalizarPerfil(usuario.perfil) === PERFIS.CONSULTOR
       );
     });
   }
@@ -477,7 +544,10 @@ function filtrarUsuariosPorPermissao(lista) {
 }
 
 function renderizarUsuarios() {
-  const corpo = document.getElementById("listaUsuarios") || document.querySelector("#tabelaUsuarios tbody");
+  const corpo =
+    document.getElementById("listaUsuarios") ||
+    document.getElementById("tabelaUsuariosBody") ||
+    document.querySelector("#tabelaUsuarios tbody");
 
   if (!corpo) return;
 
@@ -485,14 +555,14 @@ function renderizarUsuarios() {
 
   const status = pegarValor("filtroStatusUsuario");
   const perfil = pegarValor("filtroPerfilUsuario");
-  const busca = pegarValor("filtroBuscaUsuario").toLowerCase();
+  const busca = (pegarValor("filtroBuscaUsuario") || pegarValor("buscaUsuario")).toLowerCase();
 
   if (status) {
     lista = lista.filter(usuario => normalizarStatus(usuario.status) === normalizarStatus(status));
   }
 
   if (perfil && podeVerTudo()) {
-    lista = lista.filter(usuario => String(usuario.perfil).toUpperCase() === String(perfil).toUpperCase());
+    lista = lista.filter(usuario => normalizarPerfil(usuario.perfil) === normalizarPerfil(perfil));
   }
 
   if (busca) {
@@ -512,7 +582,7 @@ function renderizarUsuarios() {
   if (!lista.length) {
     corpo.innerHTML = `
       <tr>
-        <td colspan="7" class="text-center vazio">Nenhum usuário encontrado.</td>
+        <td colspan="7" class="empty-table">Nenhum usuário encontrado.</td>
       </tr>
     `;
     return;
@@ -525,8 +595,8 @@ function renderizarUsuarios() {
       <td>${escapar(usuario.nome || "-")}</td>
       <td>${escapar(usuario.email || "-")}</td>
       <td>${escapar(usuario.telefone || "-")}</td>
-      <td>${escapar(formatarPerfil(usuario.perfil) || "-")}</td>
-      <td>${escapar(obterNomeCooperativa(usuario.cooperativa_id) || "-")}</td>
+      <td><span class="tag">${escapar(formatarPerfil(usuario.perfil) || "-")}</span></td>
+      <td>${escapar(obterNomeCooperativa(usuario.cooperativa_id) || usuario.cooperativa || "-")}</td>
       <td>
         <span class="badge ${classeStatusUsuario(usuario.status)}">
           ${escapar(usuario.status || "-")}
@@ -536,7 +606,7 @@ function renderizarUsuarios() {
         ${
           podeGerenciarUsuarios()
             ? `<button type="button" class="btn-acao" onclick="editarUsuario('${escaparAtributo(usuario.id)}')">Editar</button>`
-            : ""
+            : `<span class="acao-protegida">Protegido</span>`
         }
         ${
           podeAlterarStatusUsuario()
@@ -563,6 +633,10 @@ function abrirFormularioNovoUsuario() {
   abrirModal("modalUsuario");
 }
 
+function abrirModalNovoUsuario() {
+  abrirFormularioNovoUsuario();
+}
+
 function limparFormularioUsuario() {
   preencherValor("usuarioId", "");
   preencherValor("usuarioNome", "");
@@ -571,6 +645,7 @@ function limparFormularioUsuario() {
   preencherValor("usuarioSenha", "");
   preencherValor("usuarioPerfil", "");
   preencherValor("usuarioCooperativa", "");
+  preencherValor("usuarioPermissoes", "");
   preencherValor("usuarioStatus", STATUS_USUARIO.ATIVO);
 }
 
@@ -609,8 +684,11 @@ function editarUsuario(id) {
   preencherValor("usuarioTelefone", usuario.telefone);
   preencherValor("usuarioPerfil", usuario.perfil);
   preencherValor("usuarioCooperativa", usuario.cooperativa_id);
+  preencherValor("usuarioPermissoes", usuario.permissoes || "");
   preencherValor("usuarioStatus", usuario.status);
   preencherValor("usuarioSenha", "");
+
+  preencherTexto("modalUsuarioTitulo", "Editar Usuário");
 
   abrirModal("modalUsuario");
 }
@@ -630,6 +708,7 @@ async function salvarUsuario(event) {
   const senha = pegarValor("usuarioSenha");
   const perfil = pegarValor("usuarioPerfil");
   const cooperativaId = pegarValor("usuarioCooperativa");
+  const permissoes = pegarValor("usuarioPermissoes");
   const status = pegarValor("usuarioStatus") || STATUS_USUARIO.ATIVO;
 
   if (!nome || !email || !perfil || !cooperativaId) {
@@ -648,16 +727,18 @@ async function salvarUsuario(event) {
       senha,
       perfil,
       cooperativa_id: cooperativaId,
+      permissoes,
       status,
-      atualizado_por: usuarioLogado.email,
+      usuario_logado_id: usuarioLogado.id,
+      usuario_logado_perfil: usuarioLogado.perfil,
     };
 
     if (id) {
       await chamarApi("editarUsuario", payload);
       mostrarToast("Usuário atualizado com sucesso.", "sucesso");
     } else {
-      await chamarApi("criarUsuario", payload);
-      mostrarToast("Usuário criado com sucesso.", "sucesso");
+      await chamarApi("salvarUsuario", payload);
+      mostrarToast("Usuário cadastrado com sucesso.", "sucesso");
     }
 
     fecharModal("modalUsuario");
@@ -686,17 +767,15 @@ async function alternarStatusUsuario(id) {
     return;
   }
 
-  const novoStatus = normalizarStatus(usuario.status) === STATUS_USUARIO.ATIVO ? STATUS_USUARIO.INATIVO : STATUS_USUARIO.ATIVO;
-
-  const confirmar = confirm(`Deseja realmente alterar o status de ${usuario.nome} para ${novoStatus}?`);
+  const confirmar = confirm(`Deseja realmente alterar o status de ${usuario.nome}?`);
 
   if (!confirmar) return;
 
   try {
     await chamarApi("alterarStatusUsuario", {
       id,
-      status: novoStatus,
-      usuario_responsavel: usuarioLogado.email,
+      usuario_logado_id: usuarioLogado.id,
+      usuario_logado_perfil: usuarioLogado.perfil,
     });
 
     mostrarToast("Status atualizado com sucesso.", "sucesso");
@@ -715,7 +794,10 @@ async function alternarStatusUsuario(id) {
 ========================================================= */
 
 function renderizarCooperativas() {
-  const corpo = document.getElementById("listaCooperativas") || document.querySelector("#tabelaCooperativas tbody");
+  const corpo =
+    document.getElementById("listaCooperativas") ||
+    document.getElementById("tabelaCooperativasBody") ||
+    document.querySelector("#tabelaCooperativas tbody");
 
   if (!corpo) return;
 
@@ -730,7 +812,7 @@ function renderizarCooperativas() {
   if (!lista.length) {
     corpo.innerHTML = `
       <tr>
-        <td colspan="4" class="text-center vazio">Nenhuma cooperativa encontrada.</td>
+        <td colspan="4" class="empty-table">Nenhuma cooperativa encontrada.</td>
       </tr>
     `;
     return;
@@ -741,13 +823,17 @@ function renderizarCooperativas() {
 
     tr.innerHTML = `
       <td>${escapar(coop.nome_cooperativa || "-")}</td>
-      <td>${escapar(coop.regional || "-")}</td>
-      <td>${escapar(coop.status || "-")}</td>
+      <td>${escapar(coop.regional || coop.regional_responsavel || "-")}</td>
+      <td>
+        <span class="badge ${classeStatusUsuario(coop.status)}">
+          ${escapar(coop.status || "-")}
+        </span>
+      </td>
       <td class="acoes">
         ${
           podeGerenciarCooperativas()
             ? `<button type="button" class="btn-acao" onclick="editarCooperativa('${escaparAtributo(coop.id)}')">Editar</button>`
-            : ""
+            : `<span class="acao-protegida">Protegido</span>`
         }
       </td>
     `;
@@ -756,17 +842,80 @@ function renderizarCooperativas() {
   });
 }
 
+function abrirFormularioNovaCooperativa() {
+  if (!podeGerenciarCooperativas()) {
+    mostrarToast("Você não tem permissão para criar cooperativas.", "erro");
+    return;
+  }
+
+  preencherValor("cooperativaId", "");
+  preencherValor("coopNome", "");
+  preencherValor("coopRegional", "");
+  preencherValor("coopCidade", "");
+  preencherValor("coopStatus", "ATIVO");
+
+  abrirModal("modalCooperativa");
+}
+
+function abrirModalNovaCooperativa() {
+  abrirFormularioNovaCooperativa();
+}
+
+async function salvarCooperativa(event) {
+  event.preventDefault();
+
+  if (!podeGerenciarCooperativas()) {
+    mostrarToast("Você não tem permissão para salvar cooperativas.", "erro");
+    return;
+  }
+
+  const nome = pegarValor("coopNome");
+  const regional = pegarValor("coopRegional");
+  const cidade = pegarValor("coopCidade");
+  const status = pegarValor("coopStatus") || "ATIVA";
+
+  if (!nome) {
+    mostrarToast("Informe o nome da cooperativa.", "erro");
+    return;
+  }
+
+  try {
+    bloquearBotao("btnSalvarCooperativa", true, "Salvando...");
+
+    await chamarApi("criarCooperativa", {
+      nome_cooperativa: nome,
+      nome,
+      regional_responsavel: regional,
+      cidade,
+      status,
+    });
+
+    mostrarToast("Cooperativa cadastrada com sucesso.", "sucesso");
+
+    fecharModal("modalCooperativa");
+
+    await carregarCooperativas();
+    configurarFormularioSolicitacao();
+    renderizarCooperativas();
+    renderizarDashboard();
+  } catch (erro) {
+    console.error(erro);
+  } finally {
+    bloquearBotao("btnSalvarCooperativa", false, "Salvar Cooperativa");
+  }
+}
+
 function editarCooperativa(id) {
   if (!podeGerenciarCooperativas()) {
     mostrarToast("Você não tem permissão para editar cooperativas.", "erro");
     return;
   }
 
-  mostrarToast("Função de edição de cooperativa ainda não configurada nesta tela.", "aviso");
+  mostrarToast("A edição de cooperativa ainda não está configurada no Apps Script.", "aviso");
 }
 
 /* =========================================================
-   FORMULÁRIO DE SOLICITAÇÃO DE CADASTRO
+   SOLICITAÇÃO DE CADASTRO DE CONSULTOR
 ========================================================= */
 
 function configurarFormularioSolicitacao() {
@@ -777,6 +926,16 @@ function configurarFormularioSolicitacao() {
   if (area) {
     area.style.display = podeSolicitarCadastroConsultor() ? "" : "none";
   }
+}
+
+function abrirModalConsultor() {
+  if (!podeSolicitarCadastroConsultor()) {
+    mostrarToast("Você não tem permissão para solicitar cadastro de consultor.", "erro");
+    return;
+  }
+
+  configurarFormularioSolicitacao();
+  abrirModal("modalSolicitacaoCadastro");
 }
 
 function carregarSelectCooperativasSolicitacao() {
@@ -832,16 +991,13 @@ function carregarSelectUsuariosSolicitacao() {
   let lista = [];
 
   if (podeVerTudo()) {
-    lista = usuarios.filter(usuario => {
-      return String(usuario.perfil).toUpperCase() === PERFIS.CONSULTOR;
-    });
-
+    lista = usuarios.filter(usuario => normalizarPerfil(usuario.perfil) === PERFIS.CONSULTOR);
     select.innerHTML = `<option value="">Selecione o consultor</option>`;
   } else if (isRegional()) {
     lista = usuarios.filter(usuario => {
       return (
         String(usuario.cooperativa_id) === String(usuarioLogado?.cooperativa_id) &&
-        String(usuario.perfil).toUpperCase() === PERFIS.CONSULTOR
+        normalizarPerfil(usuario.perfil) === PERFIS.CONSULTOR
       );
     });
 
@@ -874,9 +1030,7 @@ function carregarUsuariosDaCooperativaSelecionada() {
 
   const cooperativaId = selectCoop.value;
 
-  let lista = usuarios.filter(usuario => {
-    return String(usuario.perfil).toUpperCase() === PERFIS.CONSULTOR;
-  });
+  let lista = usuarios.filter(usuario => normalizarPerfil(usuario.perfil) === PERFIS.CONSULTOR);
 
   if (cooperativaId) {
     lista = lista.filter(usuario => String(usuario.cooperativa_id) === String(cooperativaId));
@@ -925,23 +1079,6 @@ async function salvarSolicitacao(event) {
   const usuarioId = pegarValor("usuarioSolicitacao");
   const usuarioSelecionado = usuarios.find(u => String(u.id) === String(usuarioId));
 
-  let nome = pegarValor("nomeSolicitacao");
-  let email = pegarValor("emailSolicitacao");
-  let telefone = pegarValor("telefoneSolicitacao");
-  let cooperativaId = pegarValor("cooperativaSolicitacao");
-  let observacao = pegarValor("observacaoSolicitacao");
-
-  if (usuarioSelecionado) {
-    nome = usuarioSelecionado.nome || nome;
-    email = usuarioSelecionado.email || email;
-    telefone = usuarioSelecionado.telefone || telefone;
-    cooperativaId = usuarioSelecionado.cooperativa_id || cooperativaId;
-  }
-
-  if (isRegional()) {
-    cooperativaId = usuarioLogado.cooperativa_id;
-  }
-
   if (!usuarioSelecionado) {
     mostrarToast("Selecione um consultor para solicitar o cadastro.", "erro");
     return;
@@ -952,38 +1089,35 @@ async function salvarSolicitacao(event) {
     return;
   }
 
-  if (!nome || !email || !cooperativaId) {
-    mostrarToast("Preencha os dados obrigatórios da solicitação.", "erro");
-    return;
+  let cooperativaId = usuarioSelecionado.cooperativa_id || pegarValor("cooperativaSolicitacao");
+
+  if (isRegional()) {
+    cooperativaId = usuarioLogado.cooperativa_id;
   }
 
-  if (!podeVerCooperativa(cooperativaId)) {
-    mostrarToast("Você não tem permissão para solicitar cadastro nesta cooperativa.", "erro");
+  if (!cooperativaId) {
+    mostrarToast("Cooperativa não informada.", "erro");
     return;
   }
 
   try {
     bloquearBotao("btnSalvarSolicitacao", true, "Enviando...");
 
-    await chamarApi("criarTicket", {
-      usuario_id: usuarioSelecionado.id,
-      nome,
-      email,
-      telefone,
+    await chamarApi("salvarConsultor", {
+      nome: usuarioSelecionado.nome || pegarValor("nomeSolicitacao"),
+      email: usuarioSelecionado.email || pegarValor("emailSolicitacao"),
+      telefone: usuarioSelecionado.telefone || pegarValor("telefoneSolicitacao"),
       cooperativa_id: cooperativaId,
-      cooperativa: obterNomeCooperativa(cooperativaId),
       regional: obterRegionalDaCooperativa(cooperativaId),
-      status: STATUS_TICKET.PENDENTE,
-      observacao,
-      solicitado_por: usuarioLogado.email,
-      nome_solicitante: usuarioLogado.nome,
-      perfil_solicitante: usuarioLogado.perfil,
-      data_solicitacao: new Date().toISOString(),
+      observacao: pegarValor("observacaoSolicitacao"),
+      solicitante_perfil: usuarioLogado.perfil,
+      solicitante_nome: usuarioLogado.nome,
     });
 
     mostrarToast("Solicitação enviada com sucesso.", "sucesso");
 
     limparFormularioSolicitacao();
+    fecharModal("modalSolicitacaoCadastro");
 
     await carregarTickets();
     renderizarTickets();
@@ -991,7 +1125,7 @@ async function salvarSolicitacao(event) {
   } catch (erro) {
     console.error(erro);
   } finally {
-    bloquearBotao("btnSalvarSolicitacao", false, "Enviar solicitação");
+    bloquearBotao("btnSalvarSolicitacao", false, "Enviar Solicitação");
   }
 }
 
@@ -1007,7 +1141,7 @@ function limparFormularioSolicitacao() {
 }
 
 /* =========================================================
-   TICKETS / SOLICITAÇÕES
+   TICKETS / PROCESSOS
 ========================================================= */
 
 function filtrarTicketsPorPermissao(lista) {
@@ -1019,23 +1153,20 @@ function filtrarTicketsPorPermissao(lista) {
     });
   }
 
-  if (isConsultor()) {
-    return lista.filter(ticket => {
-      return String(ticket.email).toLowerCase() === String(usuarioLogado?.email).toLowerCase();
-    });
-  }
-
   return [];
 }
 
 function renderizarTickets() {
-  const corpo = document.getElementById("listaTickets") || document.querySelector("#tabelaTickets tbody");
+  const corpo =
+    document.getElementById("listaTickets") ||
+    document.getElementById("tabelaProcessosBody") ||
+    document.querySelector("#tabelaTickets tbody");
 
   if (!corpo) return;
 
   let lista = filtrarTicketsPorPermissao(tickets);
 
-  const status = pegarValor("filtroStatusTicket");
+  const status = pegarValor("filtroStatusTicket") || pegarValor("filtroStatusProcesso");
   const busca = pegarValor("filtroBuscaTicket").toLowerCase();
 
   if (status) {
@@ -1049,16 +1180,15 @@ function renderizarTickets() {
         String(ticket.email || "").toLowerCase().includes(busca) ||
         String(ticket.telefone || "").toLowerCase().includes(busca) ||
         String(ticket.observacao || "").toLowerCase().includes(busca) ||
-        String(ticket.solicitado_por || "").toLowerCase().includes(busca) ||
+        String(ticket.regional || "").toLowerCase().includes(busca) ||
         String(obterNomeCooperativa(ticket.cooperativa_id) || "").toLowerCase().includes(busca)
       );
     });
   }
 
   lista.sort((a, b) => {
-    const dataA = new Date(a.data_solicitacao || a.criado_em || 0).getTime();
-    const dataB = new Date(b.data_solicitacao || b.criado_em || 0).getTime();
-
+    const dataA = new Date(a.data_solicitacao || 0).getTime();
+    const dataB = new Date(b.data_solicitacao || 0).getTime();
     return dataB - dataA;
   });
 
@@ -1067,7 +1197,7 @@ function renderizarTickets() {
   if (!lista.length) {
     corpo.innerHTML = `
       <tr>
-        <td colspan="9" class="text-center vazio">Nenhuma solicitação encontrada.</td>
+        <td colspan="9" class="empty-table">Nenhum processo encontrado.</td>
       </tr>
     `;
     return;
@@ -1086,8 +1216,8 @@ function renderizarTickets() {
           ${escapar(ticket.status || "-")}
         </span>
       </td>
-      <td>${escapar(ticket.solicitado_por || "-")}</td>
-      <td>${formatarData(ticket.data_solicitacao || ticket.criado_em)}</td>
+      <td>${escapar(ticket.solicitado_por || ticket.nome_solicitante || "-")}</td>
+      <td>${formatarData(ticket.data_solicitacao)}</td>
       <td>${escapar(ticket.observacao || "-")}</td>
       <td class="acoes">
         ${
@@ -1121,30 +1251,29 @@ function renderizarTickets() {
 
 async function alterarStatusTicket(id, novoStatus) {
   if (!podeAlterarStatusTicket()) {
-    mostrarToast("Você não tem permissão para alterar status de ticket.", "erro");
+    mostrarToast("Você não tem permissão para alterar status de processo.", "erro");
     return;
   }
 
   const ticket = tickets.find(t => String(t.id) === String(id));
 
   if (!ticket) {
-    mostrarToast("Ticket não encontrado.", "erro");
+    mostrarToast("Processo não encontrado.", "erro");
     return;
   }
 
-  const confirmar = confirm(`Deseja alterar o status deste ticket para "${novoStatus}"?`);
+  const confirmar = confirm(`Deseja alterar o status deste processo para "${novoStatus}"?`);
 
   if (!confirmar) return;
 
   try {
-    await chamarApi("alterarStatusTicket", {
+    await chamarApi("atualizarStatusConsultor", {
       id,
       status: novoStatus,
       atualizado_por: usuarioLogado.email,
-      data_atualizacao: new Date().toISOString(),
     });
 
-    mostrarToast("Status do ticket atualizado com sucesso.", "sucesso");
+    mostrarToast("Status atualizado com sucesso.", "sucesso");
 
     await carregarTickets();
     renderizarTickets();
@@ -1156,28 +1285,28 @@ async function alterarStatusTicket(id, novoStatus) {
 
 async function excluirTicket(id) {
   if (!podeExcluirTicket()) {
-    mostrarToast("Você não tem permissão para excluir tickets.", "erro");
+    mostrarToast("Você não tem permissão para excluir solicitações.", "erro");
     return;
   }
 
   const ticket = tickets.find(t => String(t.id) === String(id));
 
   if (!ticket) {
-    mostrarToast("Ticket não encontrado.", "erro");
+    mostrarToast("Solicitação não encontrada.", "erro");
     return;
   }
 
   const confirmar = confirm(
-    `Deseja realmente excluir este ticket?\n\nEssa ação remove apenas a solicitação/ticket, não remove o usuário.`
+    `Deseja realmente excluir este ticket?\n\nEssa ação remove apenas a solicitação, não remove o usuário.`
   );
 
   if (!confirmar) return;
 
   try {
-    await chamarApi("excluirTicket", {
+    await chamarApi("excluirTicketConsultor", {
       id,
+      perfil: usuarioLogado.perfil,
       excluido_por: usuarioLogado.email,
-      data_exclusao: new Date().toISOString(),
     });
 
     mostrarToast("Ticket excluído com sucesso.", "sucesso");
@@ -1191,17 +1320,88 @@ async function excluirTicket(id) {
 }
 
 /* =========================================================
-   NORMALIZAÇÃO DE DADOS
+   COMPATIBILIDADE COM FUNÇÕES ANTIGAS DO HTML
+========================================================= */
+
+function filtrarUsuarios() {
+  renderizarUsuarios();
+}
+
+function filtrarProcessos() {
+  renderizarTickets();
+}
+
+function carregarConsultores() {
+  carregarTickets().then(() => {
+    renderizarTickets();
+    renderizarDashboard();
+  });
+}
+
+function salvarConsultor(event) {
+  salvarSolicitacao(event);
+}
+
+/* =========================================================
+   NORMALIZAÇÃO
 ========================================================= */
 
 function normalizarUsuario(usuario = {}) {
   return {
-    id: usuario.id || usuario.ID || usuario.codigo || usuario.codigo_usuario || "",
-    nome: usuario.nome || usuario.Nome || usuario.name || "",
-    email: usuario.email || usuario.Email || "",
-    telefone: usuario.telefone || usuario.Telefone || usuario.whatsapp || usuario.Whatsapp || "",
-    senha: usuario.senha || usuario.Senha || "",
-    perfil: String(usuario.perfil || usuario.Perfil || "").trim().toUpperCase(),
+    id:
+      usuario.id ||
+      usuario.ID ||
+      usuario.codigo ||
+      usuario.Codigo ||
+      usuario.codigo_usuario ||
+      usuario.CodigoUsuario ||
+      usuario["Código"] ||
+      "",
+
+    nome:
+      usuario.nome ||
+      usuario.Nome ||
+      usuario.name ||
+      usuario.Name ||
+      usuario["Nome"] ||
+      usuario["NOME"] ||
+      "",
+
+    email:
+      usuario.email ||
+      usuario.Email ||
+      usuario.EMAIL ||
+      usuario["E-mail"] ||
+      usuario["e-mail"] ||
+      usuario["Email"] ||
+      usuario["EMAIL"] ||
+      "",
+
+    telefone:
+      usuario.telefone ||
+      usuario.Telefone ||
+      usuario.TELEFONE ||
+      usuario.whatsapp ||
+      usuario.Whatsapp ||
+      usuario.WHATSAPP ||
+      usuario["Telefone"] ||
+      usuario["WhatsApp"] ||
+      "",
+
+    senha:
+      usuario.senha ||
+      usuario.Senha ||
+      usuario.SENHA ||
+      "",
+
+    perfil: normalizarPerfil(
+      usuario.perfil ||
+      usuario.Perfil ||
+      usuario.PERFIL ||
+      usuario["Perfil"] ||
+      ""
+    ),
+
     cooperativa_id:
       usuario.cooperativa_id ||
       usuario.id_cooperativa ||
@@ -1209,15 +1409,48 @@ function normalizarUsuario(usuario = {}) {
       usuario.CooperativaID ||
       usuario.codigo_cooperativa ||
       usuario.CodigoCooperativa ||
+      usuario["Cooperativa ID"] ||
+      usuario["ID Cooperativa"] ||
+      usuario["Código Cooperativa"] ||
       "",
+
     cooperativa:
       usuario.cooperativa ||
       usuario.Cooperativa ||
+      usuario.COOPERATIVA ||
       usuario.nome_cooperativa ||
       usuario.NomeCooperativa ||
+      usuario["Cooperativa"] ||
+      usuario["Nome Cooperativa"] ||
       "",
-    status: String(usuario.status || usuario.Status || STATUS_USUARIO.ATIVO).trim().toUpperCase(),
-    criado_em: usuario.criado_em || usuario.CriadoEm || usuario.data_criacao || "",
+
+    permissoes:
+      usuario.permissoes ||
+      usuario.Permissoes ||
+      usuario.Permissões ||
+      usuario["Permissões"] ||
+      "",
+
+    status: normalizarStatus(
+      usuario.status ||
+      usuario.Status ||
+      usuario.STATUS ||
+      usuario["Status"] ||
+      STATUS_USUARIO.ATIVO
+    ),
+
+    data_criacao:
+      usuario.data_criacao ||
+      usuario.criado_em ||
+      usuario.CriadoEm ||
+      usuario["Data Criação"] ||
+      "",
+
+    ultimo_acesso:
+      usuario.ultimo_acesso ||
+      usuario.UltimoAcesso ||
+      usuario["Último Acesso"] ||
+      "",
   };
 }
 
@@ -1231,6 +1464,7 @@ function normalizarCooperativa(coop = {}) {
       coop.CodigoCooperativa ||
       coop.cooperativa_id ||
       "",
+
     nome_cooperativa:
       coop.nome_cooperativa ||
       coop.NomeCooperativa ||
@@ -1239,18 +1473,69 @@ function normalizarCooperativa(coop = {}) {
       coop.cooperativa ||
       coop.Cooperativa ||
       "",
-    regional: coop.regional || coop.Regional || "",
-    status: String(coop.status || coop.Status || STATUS_USUARIO.ATIVO).trim().toUpperCase(),
+
+    regional:
+      coop.regional ||
+      coop.Regional ||
+      coop.regional_responsavel ||
+      coop.RegionalResponsavel ||
+      "",
+
+    regional_responsavel:
+      coop.regional_responsavel ||
+      coop.RegionalResponsavel ||
+      coop.regional ||
+      "",
+
+    cidade:
+      coop.cidade ||
+      coop.Cidade ||
+      "",
+
+    status: normalizarStatus(
+      coop.status ||
+      coop.Status ||
+      STATUS_USUARIO.ATIVO
+    ),
+
+    data_criacao:
+      coop.data_criacao ||
+      coop.criado_em ||
+      "",
   };
 }
 
 function normalizarTicket(ticket = {}) {
   return {
-    id: ticket.id || ticket.ID || ticket.codigo || ticket.codigo_ticket || "",
-    usuario_id: ticket.usuario_id || ticket.UsuarioID || ticket.codigo_usuario || "",
-    nome: ticket.nome || ticket.Nome || "",
-    email: ticket.email || ticket.Email || "",
-    telefone: ticket.telefone || ticket.Telefone || ticket.whatsapp || "",
+    id:
+      ticket.id ||
+      ticket.ID ||
+      ticket.codigo ||
+      ticket.codigo_ticket ||
+      "",
+
+    usuario_id:
+      ticket.usuario_id ||
+      ticket.UsuarioID ||
+      ticket.codigo_usuario ||
+      "",
+
+    nome:
+      ticket.nome ||
+      ticket.Nome ||
+      "",
+
+    email:
+      ticket.email ||
+      ticket.Email ||
+      "",
+
+    telefone:
+      ticket.telefone ||
+      ticket.Telefone ||
+      ticket.whatsapp ||
+      "",
+
     cooperativa_id:
       ticket.cooperativa_id ||
       ticket.id_cooperativa ||
@@ -1258,29 +1543,62 @@ function normalizarTicket(ticket = {}) {
       ticket.CooperativaID ||
       ticket.codigo_cooperativa ||
       "",
+
     cooperativa:
       ticket.cooperativa ||
       ticket.Cooperativa ||
       ticket.nome_cooperativa ||
       ticket.NomeCooperativa ||
       "",
-    regional: ticket.regional || ticket.Regional || "",
-    status: String(ticket.status || ticket.Status || STATUS_TICKET.PENDENTE).trim().toUpperCase(),
-    observacao: ticket.observacao || ticket.Observacao || ticket.observação || "",
-    solicitado_por: ticket.solicitado_por || ticket.SolicitadoPor || "",
-    nome_solicitante: ticket.nome_solicitante || ticket.NomeSolicitante || "",
-    perfil_solicitante: ticket.perfil_solicitante || ticket.PerfilSolicitante || "",
+
+    regional:
+      ticket.regional ||
+      ticket.Regional ||
+      "",
+
+    status: normalizarStatus(
+      ticket.status ||
+      ticket.Status ||
+      STATUS_TICKET.PENDENTE
+    ),
+
+    observacao:
+      ticket.observacao ||
+      ticket.Observacao ||
+      ticket.observação ||
+      "",
+
+    solicitado_por:
+      ticket.solicitado_por ||
+      ticket.SolicitadoPor ||
+      "",
+
+    nome_solicitante:
+      ticket.nome_solicitante ||
+      ticket.NomeSolicitante ||
+      "",
+
+    perfil_solicitante:
+      ticket.perfil_solicitante ||
+      ticket.PerfilSolicitante ||
+      "",
+
     data_solicitacao:
       ticket.data_solicitacao ||
       ticket.DataSolicitacao ||
       ticket.criado_em ||
       ticket.CriadoEm ||
       "",
+
+    data_conclusao:
+      ticket.data_conclusao ||
+      ticket.DataConclusao ||
+      "",
   };
 }
 
 /* =========================================================
-   BUSCAS AUXILIARES
+   AUXILIARES
 ========================================================= */
 
 function obterNomeCooperativa(cooperativaId) {
@@ -1296,15 +1614,19 @@ function obterRegionalDaCooperativa(cooperativaId) {
 
   const coop = cooperativas.find(c => String(c.id) === String(cooperativaId));
 
-  return coop?.regional || "";
+  return coop?.regional || coop?.regional_responsavel || "";
 }
 
 function normalizarStatus(status) {
   return String(status || "").trim().toUpperCase();
 }
 
+function normalizarPerfil(perfil) {
+  return String(perfil || "").trim().toUpperCase();
+}
+
 function formatarPerfil(perfil) {
-  const p = String(perfil || "").trim().toUpperCase();
+  const p = normalizarPerfil(perfil);
 
   const mapa = {
     CONSULTOR: "Consultor",
@@ -1319,8 +1641,8 @@ function formatarPerfil(perfil) {
 function classeStatusUsuario(status) {
   const s = normalizarStatus(status);
 
-  if (s === STATUS_USUARIO.ATIVO) return "badge-sucesso";
-  if (s === STATUS_USUARIO.INATIVO) return "badge-neutro";
+  if (s === STATUS_USUARIO.ATIVO || s === "ATIVA") return "badge-sucesso";
+  if (s === STATUS_USUARIO.INATIVO || s === "INATIVA") return "badge-erro";
 
   return "badge-neutro";
 }
@@ -1460,8 +1782,29 @@ function escaparAtributo(valor) {
    EXPOSIÇÃO GLOBAL PARA ONCLICK DO HTML
 ========================================================= */
 
+window.fazerLogin = fazerLogin;
+window.sair = sair;
+
+window.abrirModal = abrirModal;
+window.fecharModal = fecharModal;
+
 window.editarUsuario = editarUsuario;
 window.alternarStatusUsuario = alternarStatusUsuario;
+window.salvarUsuario = salvarUsuario;
+window.abrirModalNovoUsuario = abrirModalNovoUsuario;
+
+window.editarCooperativa = editarCooperativa;
+window.salvarCooperativa = salvarCooperativa;
+window.abrirModalNovaCooperativa = abrirModalNovaCooperativa;
+
+window.abrirModalConsultor = abrirModalConsultor;
+window.salvarConsultor = salvarConsultor;
 window.alterarStatusTicket = alterarStatusTicket;
 window.excluirTicket = excluirTicket;
-window.editarCooperativa = editarCooperativa;
+
+window.filtrarUsuarios = filtrarUsuarios;
+window.filtrarProcessos = filtrarProcessos;
+window.carregarConsultores = carregarConsultores;
+window.carregarUsuarios = carregarUsuarios;
+window.carregarCooperativas = carregarCooperativas;
+window.carregarTickets = carregarTickets;
