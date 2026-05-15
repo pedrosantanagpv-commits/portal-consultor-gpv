@@ -10,6 +10,7 @@ let cooperativasCache = [];
 let consultoresCache = [];
 let conteudosCache = [];
 let bibliotecaConteudosAtual = [];
+let minhaCooperativaConsultoresCache = [];
 
 const LINK_CONTRATO_ZAPSIGN =
   'https://app.zapsign.com.br/verificar/doc/4c07c73c-9cbf-4498-89f1-27f95098ac60';
@@ -49,10 +50,16 @@ function abrirSistema() {
 
   aplicarPermissoesVisuais();
 
-  carregarDashboard();
   carregarCooperativas();
   carregarPalavraChave();
   carregarConteudosGerais();
+
+  if (usuarioEhConsultor() || usuarioEhRegional()) {
+    mostrarAba('central');
+  } else {
+    carregarDashboard();
+    mostrarAba('inicio');
+  }
 }
 
 /* =========================
@@ -149,44 +156,28 @@ function sair() {
    PERMISSÕES / HIERARQUIA
 ========================= */
 
-function aplicarPermissoesVisuais() {
-  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
-
-  const btnCadastro = document.getElementById('btnCadastroConsultor');
-  const menuProcessos = document.querySelector('[data-aba="processos"]');
-  const menuUsuarios = document.querySelector('[data-aba="usuarios"]');
-  const menuCooperativas = document.querySelector('[data-aba="cooperativas"]');
-
-  if (perfil === 'CONSULTOR') {
-    if (btnCadastro) btnCadastro.style.display = 'none';
-    if (menuProcessos) menuProcessos.style.display = 'none';
-    if (menuUsuarios) menuUsuarios.style.display = 'none';
-    if (menuCooperativas) menuCooperativas.style.display = 'none';
-    return;
-  }
-
-  if (perfil === 'REGIONAL') {
-    if (menuUsuarios) menuUsuarios.style.display = 'none';
-    if (menuCooperativas) menuCooperativas.style.display = 'none';
-  }
-
-  if (btnCadastro) {
-    btnCadastro.style.display = 'block';
-    btnCadastro.innerText = 'Solicitar Cadastro de Consultor';
-  }
-
-  if (menuProcessos) {
-    menuProcessos.style.display = 'block';
-  }
+function obterPerfilLogado() {
+  return String(usuarioLogado?.perfil || '').toUpperCase();
 }
 
 function usuarioEhSuperAdmin() {
-  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
-  return perfil === 'SUPER_ADMIN';
+  return obterPerfilLogado() === 'SUPER_ADMIN';
+}
+
+function usuarioEhAdministrativo() {
+  return obterPerfilLogado() === 'ADMINISTRATIVO';
+}
+
+function usuarioEhRegional() {
+  return obterPerfilLogado() === 'REGIONAL';
+}
+
+function usuarioEhConsultor() {
+  return obterPerfilLogado() === 'CONSULTOR';
 }
 
 function usuarioEhAdmin() {
-  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfil = obterPerfilLogado();
 
   return (
     perfil === 'SUPER_ADMIN' ||
@@ -194,28 +185,50 @@ function usuarioEhAdmin() {
   );
 }
 
-function usuarioEhAdministrativo() {
-  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
-  return perfil === 'ADMINISTRATIVO';
-}
-
-function usuarioEhRegional() {
-  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
-  return perfil === 'REGIONAL';
+function podeGerenciarUsuarios() {
+  return usuarioEhSuperAdmin() || usuarioEhAdministrativo();
 }
 
 function podeSolicitarCadastroConsultor() {
-  const perfil = String(usuarioLogado?.perfil || '').toUpperCase();
-
   return (
-    perfil === 'SUPER_ADMIN' ||
-    perfil === 'ADMINISTRATIVO' ||
-    perfil === 'REGIONAL'
+    usuarioEhSuperAdmin() ||
+    usuarioEhAdministrativo() ||
+    usuarioEhRegional()
   );
 }
 
-function podeGerenciarUsuarios() {
+function podeAcessarMinhaCooperativa() {
+  return usuarioEhRegional();
+}
+
+function podeAcessarProcessos() {
   return usuarioEhSuperAdmin() || usuarioEhAdministrativo();
+}
+
+function podeAcessarDashboard() {
+  return usuarioEhSuperAdmin() || usuarioEhAdministrativo();
+}
+
+function aplicarPermissoesVisuais() {
+  const menuInicio = document.querySelector('[data-aba="inicio"]');
+  const menuUsuarios = document.querySelector('[data-aba="usuarios"]');
+  const menuCooperativas = document.querySelector('[data-aba="cooperativas"]');
+  const menuCentral = document.querySelector('[data-aba="central"]');
+  const menuMinhaCooperativa = document.querySelector('[data-aba="minha-cooperativa"]');
+  const menuProcessos = document.querySelector('[data-aba="processos"]');
+  const btnCadastro = document.getElementById('btnCadastroConsultor');
+
+  if (menuInicio) menuInicio.style.display = podeAcessarDashboard() ? 'block' : 'none';
+  if (menuUsuarios) menuUsuarios.style.display = podeGerenciarUsuarios() ? 'block' : 'none';
+  if (menuCooperativas) menuCooperativas.style.display = podeGerenciarUsuarios() ? 'block' : 'none';
+  if (menuCentral) menuCentral.style.display = 'block';
+  if (menuMinhaCooperativa) menuMinhaCooperativa.style.display = podeAcessarMinhaCooperativa() ? 'block' : 'none';
+  if (menuProcessos) menuProcessos.style.display = podeAcessarProcessos() ? 'block' : 'none';
+
+  if (btnCadastro) {
+    btnCadastro.style.display = podeSolicitarCadastroConsultor() ? 'block' : 'none';
+    btnCadastro.innerText = 'Solicitar Cadastro de Consultor';
+  }
 }
 
 function mesmoUsuario(id) {
@@ -223,7 +236,7 @@ function mesmoUsuario(id) {
 }
 
 function podeEditarUsuarioAlvo(usuarioAlvo) {
-  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfilLogado = obterPerfilLogado();
   const perfilAlvo = String(usuarioAlvo?.perfil || '').toUpperCase();
 
   if (!podeGerenciarUsuarios()) return false;
@@ -239,7 +252,7 @@ function podeEditarUsuarioAlvo(usuarioAlvo) {
 }
 
 function podeAlterarStatusUsuarioAlvo(usuarioAlvo) {
-  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfilLogado = obterPerfilLogado();
   const perfilAlvo = String(usuarioAlvo?.perfil || '').toUpperCase();
 
   if (!podeGerenciarUsuarios()) return false;
@@ -256,7 +269,7 @@ function podeAlterarStatusUsuarioAlvo(usuarioAlvo) {
 }
 
 function podeExcluirUsuarioAlvo(usuarioAlvo) {
-  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfilLogado = obterPerfilLogado();
   const perfilAlvo = String(usuarioAlvo?.perfil || '').toUpperCase();
 
   if (!podeGerenciarUsuarios()) return false;
@@ -274,7 +287,7 @@ function podeExcluirUsuarioAlvo(usuarioAlvo) {
 }
 
 function podeCriarPerfil(perfilNovo) {
-  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfilLogado = obterPerfilLogado();
   const perfil = String(perfilNovo || '').toUpperCase();
 
   if (perfilLogado === 'SUPER_ADMIN') return true;
@@ -288,7 +301,7 @@ function podeCriarPerfil(perfilNovo) {
 }
 
 function obterMensagemProtecaoUsuario(usuarioAlvo) {
-  const perfilLogado = String(usuarioLogado?.perfil || '').toUpperCase();
+  const perfilLogado = obterPerfilLogado();
   const perfilAlvo = String(usuarioAlvo?.perfil || '').toUpperCase();
 
   if (perfilLogado === 'SUPER_ADMIN') return '';
@@ -332,6 +345,11 @@ function ajustarOpcoesPerfilUsuario(perfilAtual = '') {
 ========================= */
 
 function mostrarAba(aba) {
+  if (aba === 'inicio' && !podeAcessarDashboard()) {
+    mostrarAba('central');
+    return;
+  }
+
   if (aba === 'usuarios' && !podeGerenciarUsuarios()) {
     alert('Você não tem permissão para acessar usuários.');
     return;
@@ -339,6 +357,16 @@ function mostrarAba(aba) {
 
   if (aba === 'cooperativas' && !podeGerenciarUsuarios()) {
     alert('Você não tem permissão para acessar cooperativas.');
+    return;
+  }
+
+  if (aba === 'processos' && !podeAcessarProcessos()) {
+    alert('Você não tem permissão para acessar processos administrativos.');
+    return;
+  }
+
+  if (aba === 'minha-cooperativa' && !podeAcessarMinhaCooperativa()) {
+    alert('Você não tem permissão para acessar esta área.');
     return;
   }
 
@@ -370,6 +398,8 @@ function mostrarAba(aba) {
     carregarConteudosGerais();
   }
 
+  if (aba === 'minha-cooperativa') carregarMinhaCooperativa();
+
   if (aba === 'processos') carregarConsultores();
 }
 
@@ -378,6 +408,8 @@ function mostrarAba(aba) {
 ========================= */
 
 async function carregarDashboard() {
+  if (!podeAcessarDashboard()) return;
+
   try {
     const resultado = await apiPost({
       action: 'dashboard'
@@ -1113,7 +1145,10 @@ async function salvarConsultor(event) {
     alert(resultado.message || 'Solicitação enviada com sucesso.');
 
     fecharModal('modalConsultor');
-    carregarConsultores();
+
+    if (podeAcessarProcessos()) {
+      carregarConsultores();
+    }
 
   } catch (erro) {
     console.error(erro);
@@ -1137,6 +1172,106 @@ function copiarLinkContrato() {
       document.execCommand('copy');
       alert('Link copiado com sucesso.');
     });
+}
+
+/* =========================
+   MINHA COOPERATIVA
+========================= */
+
+async function carregarMinhaCooperativa() {
+  if (!podeAcessarMinhaCooperativa()) {
+    alert('Você não tem permissão para acessar esta área.');
+    return;
+  }
+
+  try {
+    const resultado = await apiPost({
+      action: 'listarConsultoresMinhaCooperativa',
+      usuario_logado_id: usuarioLogado?.id || '',
+      usuario_logado_perfil: usuarioLogado?.perfil || '',
+      cooperativa_id: usuarioLogado?.cooperativa_id || ''
+    });
+
+    if (!resultado.success) {
+      alert(resultado.message || 'Erro ao carregar sua cooperativa.');
+      renderizarMinhaCooperativa([]);
+      return;
+    }
+
+    minhaCooperativaConsultoresCache = resultado.consultores || [];
+
+    const descricao = document.getElementById('minhaCooperativaDescricao');
+
+    if (descricao) {
+      const nomeCoop = resultado.cooperativa?.nome || 'sua cooperativa';
+      descricao.innerText = `Consultores vinculados à ${nomeCoop}`;
+    }
+
+    renderizarMinhaCooperativa(minhaCooperativaConsultoresCache);
+
+  } catch (erro) {
+    console.error(erro);
+    alert('Erro ao carregar sua cooperativa.');
+    renderizarMinhaCooperativa([]);
+  }
+}
+
+function renderizarMinhaCooperativa(lista) {
+  const tbody = document.getElementById('tabelaMinhaCooperativaBody');
+
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  const total = lista.length;
+  const ativos = lista.filter(item =>
+    String(item.status || '').toUpperCase() === 'ATIVO'
+  ).length;
+  const inativos = lista.filter(item =>
+    String(item.status || '').toUpperCase() === 'INATIVO'
+  ).length;
+
+  setTexto('minhaCoopTotal', total);
+  setTexto('minhaCoopAtivos', ativos);
+  setTexto('minhaCoopInativos', inativos);
+
+  if (!lista.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="3" class="empty-table">
+          Nenhum consultor encontrado para sua cooperativa.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  lista.forEach(item => {
+    const tr = document.createElement('tr');
+
+    const statusTexto = String(item.status || '').toUpperCase();
+
+    const statusClass = statusTexto === 'ATIVO'
+      ? 'status ativo'
+      : 'status inativo';
+
+    tr.innerHTML = `
+      <td>
+        <strong>${item.nome || '-'}</strong>
+        <small>${item.id || ''}</small>
+      </td>
+
+      <td>${item.email || '-'}</td>
+
+      <td>
+        <span class="${statusClass}">
+          ${item.status || '-'}
+        </span>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
 }
 
 /* =========================
@@ -1567,6 +1702,11 @@ function abrirLinkConteudo(conteudo) {
 ========================= */
 
 async function carregarConsultores() {
+  if (!podeAcessarProcessos()) {
+    alert('Você não tem permissão para acessar processos administrativos.');
+    return;
+  }
+
   try {
     const resultado = await apiPost({
       action: 'listarConsultores',
