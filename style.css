@@ -1647,3 +1647,107 @@ tbody td small {
     padding: 18px;
   }
 }
+/* =========================
+   MINHA COOPERATIVA
+========================= */
+
+#secao-minha-cooperativa .section-header {
+  margin-bottom: 26px;
+}
+
+#secao-minha-cooperativa .section-header h1 {
+  font-size: 34px;
+  letter-spacing: -1.1px;
+  color: #ffffff;
+}
+
+#secao-minha-cooperativa .section-header p {
+  color: #cfcfcf;
+  margin-top: 4px;
+}
+
+#secao-minha-cooperativa .section-header button {
+  min-width: 150px;
+  height: 52px;
+  border: none;
+  border-radius: 15px;
+  font-size: 14px;
+  font-weight: 800;
+  background:
+    linear-gradient(180deg, #ffd84d 0%, #ffcc00 45%, #f2b400 100%);
+  color: #050505;
+  box-shadow:
+    0 14px 28px rgba(255, 204, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.18s ease, filter 0.18s ease, box-shadow 0.18s ease;
+}
+
+#secao-minha-cooperativa .section-header button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+  box-shadow:
+    0 18px 34px rgba(255, 204, 0, 0.20),
+    inset 0 1px 0 rgba(255, 255, 255, 0.40);
+}
+
+.minha-cooperativa-resumo {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  max-width: 780px;
+}
+
+#secao-minha-cooperativa .mini-card {
+  min-height: 118px;
+}
+
+#secao-minha-cooperativa .mini-card span {
+  font-size: 38px;
+}
+
+#secao-minha-cooperativa .table-wrapper {
+  margin-top: 6px;
+}
+
+#secao-minha-cooperativa thead th {
+  height: 62px;
+}
+
+#secao-minha-cooperativa tbody td {
+  padding: 22px 20px;
+}
+
+#secao-minha-cooperativa tbody td strong {
+  font-size: 15px;
+}
+
+#secao-minha-cooperativa .status {
+  min-width: 104px;
+}
+
+/* Destaque visual exclusivo da tela do Regional */
+
+#secao-minha-cooperativa .table-wrapper::before {
+  content: "";
+  display: block;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, rgba(255, 204, 0, 0.85), transparent);
+  opacity: 0.75;
+}
+
+/* Responsivo Minha Cooperativa */
+
+@media (max-width: 900px) {
+  .minha-cooperativa-resumo {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 700px) {
+  #secao-minha-cooperativa .section-header h1 {
+    font-size: 28px;
+  }
+
+  #secao-minha-cooperativa tbody td {
+    padding: 16px;
+  }
+}
