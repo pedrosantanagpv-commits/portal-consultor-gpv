@@ -93,6 +93,10 @@
             Central do Consultor
           </button>
 
+          <button class="menu-item" data-aba="minha-cooperativa" onclick="mostrarAba('minha-cooperativa')">
+            Minha Cooperativa
+          </button>
+
           <button class="menu-item" data-aba="processos" onclick="mostrarAba('processos')">
             Processos Administrativos
           </button>
@@ -453,6 +457,72 @@
             </div>
 
           </div>
+
+        </div>
+
+      </section>
+
+      <!-- MINHA COOPERATIVA -->
+
+      <section id="secao-minha-cooperativa" class="section" style="display:none;">
+
+        <div class="section-header">
+
+          <div>
+            <h1>Minha Cooperativa</h1>
+            <p id="minhaCooperativaDescricao">
+              Consultores vinculados à sua cooperativa
+            </p>
+          </div>
+
+          <button onclick="carregarMinhaCooperativa()">
+            Atualizar Lista
+          </button>
+
+        </div>
+
+        <div class="mini-dashboard minha-cooperativa-resumo">
+
+          <div class="mini-card">
+            <span id="minhaCoopTotal">0</span>
+            <small>Total de consultores</small>
+          </div>
+
+          <div class="mini-card">
+            <span id="minhaCoopAtivos">0</span>
+            <small>Ativos</small>
+          </div>
+
+          <div class="mini-card">
+            <span id="minhaCoopInativos">0</span>
+            <small>Inativos</small>
+          </div>
+
+        </div>
+
+        <div class="table-wrapper">
+
+          <table>
+
+            <thead>
+              <tr>
+                <th>Consultor</th>
+                <th>E-mail</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+
+            <tbody id="tabelaMinhaCooperativaBody">
+
+              <tr>
+                <td colspan="3" class="empty-table">
+                  Nenhum consultor encontrado.
+                </td>
+              </tr>
+
+            </tbody>
+
+          </table>
 
         </div>
 
